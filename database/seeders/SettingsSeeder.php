@@ -14,7 +14,6 @@ class SettingsSeeder extends Seeder
     public function run(): void
     {
         $settings = [
-            ['wholesale_min_order_bs', 1000, 'Pedido mayorista mínimo (Bs), sumando los códigos que llegan a su mínimo', true],
             ['order_reservation_hours', 2, 'Horas que se reserva un pedido web mientras se paga', true],
             ['payment_qr_url', null, 'Imagen del QR de pago de Traigo', true],
             ['store_whatsapp', null, 'WhatsApp de la tienda', true],
