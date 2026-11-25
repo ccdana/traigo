@@ -4,6 +4,7 @@ use App\Exceptions\ApiErrors;
 use App\Http\Middleware\EnsureActiveStaff;
 use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\EnsureTeamMember;
 use App\Http\Middleware\SetDatabaseActor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'staff' => EnsureActiveStaff::class,
             'role' => EnsureRole::class,
+            'member' => EnsureTeamMember::class,
             'actor' => SetDatabaseActor::class,
             'idempotent' => EnsureIdempotency::class,
         ]);

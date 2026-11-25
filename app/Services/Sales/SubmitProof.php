@@ -8,12 +8,10 @@ use App\Exceptions\ApiException;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
-use App\Support\FileLinks;
+use App\Support\PrivateFiles;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * La foto del comprobante: el cobro queda por revisar y el pedido «En
@@ -53,7 +51,7 @@ class SubmitProof
 
                 $this->ensureNewReference($payment, $reference);
 
-                $stored = $this->store($order, $file);
+                $stored = PrivateFiles::put($file, "comprobantes/{$order->getKey()}", "comprobante-{$order->order_number}");
 
                 $payment->fill([
                     'status' => PaymentStatus::Submitted,
@@ -75,14 +73,14 @@ class SubmitProof
                 return $order;
             });
         } catch (UniqueConstraintViolationException $e) {
-            $this->forget($stored);
+            PrivateFiles::forget($stored);
 
             // Otra venta usó esa referencia en el mismo momento.
             throw str_contains($e->getMessage(), 'payments_reference_unique')
                 ? $this->duplicatedReference()
                 : $e;
         } catch (\Throwable $e) {
-            $this->forget($stored);
+            PrivateFiles::forget($stored);
 
             throw $e;
         }
@@ -109,27 +107,5 @@ class SubmitProof
     private function duplicatedReference(): ApiException
     {
         return ApiException::conflict('reference_duplicated', 'Ese número de referencia ya se usó en otro pago.');
-    }
-
-    private function store(Order $order, UploadedFile $file): string
-    {
-        $extension = $file->guessExtension() === 'jpeg' ? 'jpg' : $file->guessExtension();
-        // El nombre se ve en la app; la parte al azar evita adivinarlo.
-        $name = "comprobante-{$order->order_number}-".Str::lower(Str::random(12)).".{$extension}";
-
-        $path = Storage::disk(FileLinks::DISK)->putFileAs("comprobantes/{$order->getKey()}", $file, $name);
-
-        if ($path === false) {
-            throw new ApiException(500, 'No pudimos guardar el archivo. Intenta de nuevo.');
-        }
-
-        return $path;
-    }
-
-    private function forget(?string $path): void
-    {
-        if ($path !== null) {
-            Storage::disk(FileLinks::DISK)->delete($path);
-        }
     }
 }

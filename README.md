@@ -10,7 +10,7 @@ repositorio de la app: `docs/api-contract.md`.
 |---|---|---|
 | 1 | Base de la API e ingreso: `POST /auth/login`, `/auth/two-factor`, `/auth/two-factor/resend`, `/auth/logout` y `GET /me` | Hecha |
 | 2 | Catálogo (`/catalog`) y ventas (`/orders`): registrar, listar, cancelar y subir el comprobante | Hecha |
-| 3 | Inicio, equipo y mi semana | Pendiente |
+| 3 | Inicio (`/home`), «Equipo» (`/team/week`), «Mi semana» (`/me/week`), evidencia y entregas de Sistemas | Hecha |
 | 4 | Almacén | Pendiente |
 | 5 | Panel de Jime | Pendiente |
 | 6 | «Más» y Dirección | Pendiente |
@@ -61,11 +61,12 @@ flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2
 ```
 
 Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`. Mientras falten las fases 3 a 6, en la app
-funcionan el ingreso, las pestañas Catálogo y Vender, el detalle del pedido y su
-comprobante. A «Mis pedidos» se llega desde un pedido recién registrado (el
-atajo del Inicio llega con la fase 3). El Inicio y las demás pantallas
-responden «no encontrado».
+`storage/logs/laravel.log`. Mientras falten las fases 4 a 6, en la app
+funcionan el ingreso y todo lo del equipo menos el almacén: Inicio, Equipo, Mi
+semana, evidencia, entregas, catálogo y ventas. La caja, los despachos (en el
+Inicio de Isaí salen como «No se pudieron cargar»), el stock y el panel de Jime
+y Dirección todavía responden «no encontrado». Los valores reales del KPI los
+cargará Jime (fase 5): hasta entonces el avance sale en 0 %.
 
 ## Antes de producción
 
@@ -87,8 +88,9 @@ php artisan traigo:pin JIM-01
   Jime y Dirección, solo con este comando.
 - Tareas programadas (borran códigos y tokens vencidos): ejecuta
   `php artisan schedule:run` cada minuto.
-- **Comprobantes**: se guardan en `storage/app/private/comprobantes`. Esa
-  carpeta tiene que entrar en el **respaldo**, junto con la base.
+- **Archivos**: comprobantes, evidencias y entregas se guardan en
+  `storage/app/private`. Esa carpeta tiene que entrar en el **respaldo**, junto
+  con la base.
 - PHP debe aceptar archivos de 5 MB: `upload_max_filesize` de 6M o más y
   `post_max_size` de 8M o más (por defecto PHP solo acepta 2M).
 - Si el servidor está detrás de un proxy que pone el HTTPS, configura los
@@ -101,6 +103,8 @@ php artisan traigo:pin JIM-01
 - `app/Services/Auth`: PIN con bloqueo y el segundo paso por correo.
 - `app/Services/Sales`: precios (misma regla que la app), stock apartado,
   registrar y cancelar ventas y los comprobantes.
+- `app/Services/Team`: Inicio, «Equipo», evidencia y entregas. El puntaje y
+  el «cumple» salen de las vistas de la base (las fórmulas del Excel).
 - `app/Exceptions`: errores en el formato del contrato
   (`{ "message", "code"?, "data"? }`) y en español. Los mensajes de validación
   están en `lang/es`.

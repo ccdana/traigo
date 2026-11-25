@@ -8,6 +8,8 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\SubmissionController;
+use App\Http\Controllers\Api\V1\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -23,6 +25,18 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+
+    // Inicio, equipo y «Mi semana»: los integrantes, cada quien lo suyo.
+    Route::middleware('member')->group(function () {
+        Route::get('home', [TeamController::class, 'home']);
+        Route::get('team/week', [TeamController::class, 'teamWeek']);
+        Route::get('me/week', [TeamController::class, 'myWeek']);
+        Route::post('me/kpi-results/{result}/evidence', [SubmissionController::class, 'evidence'])
+            ->whereUuid('result');
+        Route::post('me/deliverables/{deliverable}/submission', [SubmissionController::class, 'deliverable'])
+            ->middleware('role:systems')
+            ->whereUuid('deliverable');
+    });
 
     // Catálogo: todo el equipo, y Jime y Dirección para los precios.
     Route::get('catalog', [CatalogController::class, 'index']);

@@ -58,8 +58,15 @@ return [
         'challenge_id' => 'la verificación',
         'code' => 'el código',
         'correo' => 'el correo',
+        'delivered_on' => 'la fecha de entrega',
         'device_name' => 'el nombre del celular',
+        'file' => 'la foto',
+        'kind' => 'el tipo de evidencia',
+        'note' => 'la nota',
+        'order_id' => 'el pedido',
         'pin' => 'el PIN',
+        'url' => 'el enlace',
+        'week' => 'la semana',
     ],
 
 ];

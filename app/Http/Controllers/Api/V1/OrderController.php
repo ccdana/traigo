@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
-use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Requests\NewSaleRequest;
 use App\Http\Resources\SaleOrder;
 use App\Models\Order;
@@ -12,10 +10,10 @@ use App\Services\Sales\CancelSale;
 use App\Services\Sales\CreateSale;
 use App\Services\Sales\OwnOrders;
 use App\Services\Sales\SubmitProof;
+use App\Support\ClientKey;
 use App\Support\Responses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /** Las ventas de quien vende: solo las propias. */
@@ -51,7 +49,7 @@ class OrderController extends Controller
 
     public function store(NewSaleRequest $request, CreateSale $sales): JsonResponse
     {
-        $order = $sales->create($request->user(), $request->validated(), $this->clientUuid($request));
+        $order = $sales->create($request->user(), $request->validated(), ClientKey::require($request));
 
         return $this->detail($order, 201);
     }
@@ -80,23 +78,8 @@ class OrderController extends Controller
             $order,
             $request->file('file'),
             $data['reference'] ?? null,
-            $this->clientUuid($request),
+            ClientKey::require($request),
         ));
-    }
-
-    /**
-     * La clave del envío: la app la repite al reintentar, así nada se registra
-     * dos veces.
-     */
-    private function clientUuid(Request $request): string
-    {
-        $key = (string) $request->headers->get(EnsureIdempotency::HEADER);
-
-        if (! Str::isUuid($key)) {
-            throw ApiException::invalid('Falta la clave del envío.');
-        }
-
-        return Str::lower($key);
     }
 
     private function detail(Order $order, int $status = 200): JsonResponse
