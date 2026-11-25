@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // La sesión de PostgreSQL usa la misma hora que la aplicación; si
+            // no, las fechas guardadas se correrían.
+            'timezone' => 'America/La_Paz',
         ],
 
         'sqlsrv' => [

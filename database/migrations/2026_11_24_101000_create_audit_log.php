@@ -60,7 +60,7 @@ return new class extends Migration
 
         DB::unprepared(<<<'SQL'
             -- Los registros del historial y del kardex no se editan ni se borran.
-            CREATE FUNCTION forbid_history_changes() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION forbid_history_changes() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
                 RAISE EXCEPTION 'La tabla % solo admite agregar filas.', TG_TABLE_NAME
                     USING ERRCODE = 'restrict_violation';
@@ -73,7 +73,7 @@ return new class extends Migration
             CREATE TRIGGER stock_movements_append_only BEFORE UPDATE OR DELETE ON stock_movements
                 FOR EACH ROW EXECUTE FUNCTION forbid_history_changes();
 
-            CREATE FUNCTION audit_row_change() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION audit_row_change() RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE
                 secret text[] := ARRAY['password', 'pin_hash', 'remember_token'];
                 before jsonb;

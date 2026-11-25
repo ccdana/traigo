@@ -1,58 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Traigo · backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API en Laravel 13 de la app **Traigo Equipo** (y, más adelante, de la tienda web
+de Navidad). El contrato completo (endpoints, datos y reglas) está en el
+repositorio de la app: `docs/api-contract.md`.
 
-## About Laravel
+## Qué hay hecho
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Fase | Contenido | Estado |
+|---|---|---|
+| 1 | Base de la API e ingreso: `POST /auth/login`, `/auth/two-factor`, `/auth/two-factor/resend`, `/auth/logout` y `GET /me` | Hecha |
+| 2 | Catálogo y ventas | Pendiente |
+| 3 | Inicio, equipo y mi semana | Pendiente |
+| 4 | Almacén | Pendiente |
+| 5 | Panel de Jime | Pendiente |
+| 6 | «Más» y Dirección | Pendiente |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Instalar en una PC de desarrollo
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Requiere PHP 8.3 o superior (con `pdo_pgsql`) y PostgreSQL 13 o superior. Laragon
+ya trae los dos.
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```powershell
+composer install
+copy .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Crea la base `traigo` y completa `DB_*` en `.env`. Después:
 
-## Contributing
+```powershell
+php artisan migrate --seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Para entrar con el PIN `1234`, como en la demo de la app (solo con
+`APP_ENV=local`). También pone un correo de prueba a Jime y Dirección:
 
-## Code of Conduct
+```powershell
+php artisan db:seed --class=LocalPinSeeder
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Levanta la API. `0.0.0.0` permite entrar desde un celular de la misma red:
 
-## Security Vulnerabilities
+```powershell
+php artisan serve --host=0.0.0.0 --port=8000
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+La app se conecta así (en el emulador, `10.0.2.2` es tu PC; en un celular real
+usa la IP de tu PC):
 
-## License
+```powershell
+flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
+`storage/logs/laravel.log`. Mientras falten las fases 2 a 6, la app solo
+completa el ingreso: las demás pantallas responden «no encontrado».
+
+## Antes de producción
+
+- `APP_ENV=production`, `APP_DEBUG=false` y **HTTPS**.
+- Correo real en `MAIL_*`. Con `MAIL_MAILER=log` la API **no envía** códigos en
+  producción.
+- El PIN de cada persona y el correo de Jime y Dirección:
+
+```powershell
+php artisan traigo:correo JIM-01 correo@ejemplo.com
+```
+
+```powershell
+php artisan traigo:pin JIM-01
+```
+
+  El PIN se escribe sin que se vea. Cambiarlo cierra las sesiones de la persona.
+  Las cuentas del equipo también las repone Jime desde la app (fase 6); las de
+  Jime y Dirección, solo con este comando.
+- Tareas programadas (borran códigos y tokens vencidos): ejecuta
+  `php artisan schedule:run` cada minuto.
+
+## Cómo está armado
+
+- `routes/api.php`: todas las rutas, bajo `/api/v1`.
+- `app/Services/Auth`: PIN con bloqueo y el segundo paso por correo.
+- `app/Exceptions`: errores en el formato del contrato
+  (`{ "message", "code"?, "data"? }`) y en español. Los mensajes de validación
+  están en `lang/es`.
+- `app/Http/Middleware`: cuenta activa, permisos por rol, quién actúa (para el
+  historial de la base) e `Idempotency-Key` para que un envío repetido se haga
+  una sola vez.
+- `config/traigo.php`: límites de seguridad (intentos, bloqueo, códigos).
+
+La base de datos (`database/`) sale de los Excel de la campaña: ella también
+impide romper las reglas de negocio y escribe el historial.
+
+## Pruebas
+
+Usan PostgreSQL y **borran las tablas** de la base de pruebas. Crea una aparte
+una sola vez:
+
+```powershell
+createdb -U postgres traigo_test
+```
+
+```powershell
+php artisan test
+```
+
+Solo corren sobre una base cuyo nombre termine en `_test`. Si tu PostgreSQL usa
+otro puerto o contraseña, define `DB_PORT` o `DB_PASSWORD` antes.
+
+```powershell
+vendor\bin\pint
+```

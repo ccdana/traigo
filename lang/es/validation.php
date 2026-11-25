@@ -1,0 +1,65 @@
+<?php
+
+/** Los mensajes que la app puede mostrar tal cual. */
+return [
+
+    'accepted' => 'Debes aceptar :attribute.',
+    'after' => ':Attribute debe ser después de :date.',
+    'after_or_equal' => ':Attribute debe ser :date o después.',
+    'array' => ':Attribute debe ser una lista.',
+    'before' => ':Attribute debe ser antes de :date.',
+    'before_or_equal' => ':Attribute debe ser :date o antes.',
+    'between' => [
+        'array' => ':Attribute debe tener entre :min y :max elementos.',
+        'file' => ':Attribute debe pesar entre :min y :max KB.',
+        'numeric' => ':Attribute debe estar entre :min y :max.',
+        'string' => ':Attribute debe tener entre :min y :max letras.',
+    ],
+    'boolean' => ':Attribute debe ser sí o no.',
+    'date' => ':Attribute no es una fecha válida.',
+    'date_format' => ':Attribute no tiene el formato :format.',
+    'decimal' => ':Attribute debe tener :decimal decimales.',
+    'distinct' => ':Attribute está repetido.',
+    'email' => ':Attribute no es un correo válido.',
+    'exists' => ':Attribute no existe.',
+    'file' => ':Attribute debe ser un archivo.',
+    'gt' => [
+        'numeric' => ':Attribute debe ser mayor que :value.',
+    ],
+    'image' => ':Attribute debe ser una foto.',
+    'in' => ':Attribute no es una opción válida.',
+    'integer' => ':Attribute debe ser un número entero.',
+    'max' => [
+        'array' => ':Attribute no puede tener más de :max elementos.',
+        'file' => ':Attribute no puede pesar más de :max KB.',
+        'numeric' => ':Attribute no puede ser mayor que :max.',
+        'string' => ':Attribute no puede tener más de :max letras.',
+    ],
+    'mimes' => ':Attribute debe ser un archivo :values.',
+    'mimetypes' => ':Attribute debe ser un archivo :values.',
+    'min' => [
+        'array' => ':Attribute debe tener al menos :min elementos.',
+        'file' => ':Attribute debe pesar al menos :min KB.',
+        'numeric' => ':Attribute debe ser al menos :min.',
+        'string' => ':Attribute debe tener al menos :min letras.',
+    ],
+    'numeric' => ':Attribute debe ser un número.',
+    'regex' => ':Attribute no tiene un formato válido.',
+    'required' => 'Falta :attribute.',
+    'required_if' => 'Falta :attribute.',
+    'required_with' => 'Falta :attribute.',
+    'string' => ':Attribute debe ser texto.',
+    'unique' => ':Attribute ya está en uso.',
+    'uploaded' => 'No se pudo subir :attribute.',
+    'url' => ':Attribute no es un enlace válido.',
+    'uuid' => ':Attribute no es válido.',
+
+    'attributes' => [
+        'challenge_id' => 'la verificación',
+        'code' => 'el código',
+        'correo' => 'el correo',
+        'device_name' => 'el nombre del celular',
+        'pin' => 'el PIN',
+    ],
+
+];

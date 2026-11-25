@@ -11,7 +11,9 @@ class LocalPinSeeder extends Seeder
 {
     /**
      * Solo para probar en una PC de desarrollo: pone el PIN 1234 a todo el
-     * equipo, igual que el modo demo de la app. Nunca corre en producción.
+     * equipo, igual que el modo demo de la app, y un correo de prueba a Jime y
+     * Dirección si no tienen (el código queda en el log). Nunca corre en
+     * producción.
      *
      *   php artisan db:seed --class=LocalPinSeeder
      */
@@ -22,5 +24,10 @@ class LocalPinSeeder extends Seeder
         }
 
         DB::table('users')->where('role', '<>', 'customer')->update(['pin_hash' => Hash::make('1234')]);
+
+        DB::table('users')
+            ->whereIn('role', ['control', 'management'])
+            ->whereNull('email')
+            ->update(['email' => DB::raw("lower(code) || '@traigo.test'")]);
     }
 }

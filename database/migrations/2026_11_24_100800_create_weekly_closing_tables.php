@@ -84,7 +84,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE weekly_member_results ADD CONSTRAINT member_results_not_own_close_chk CHECK (closed_by <> user_id)');
 
         DB::unprepared(<<<'SQL'
-            CREATE FUNCTION weekly_closing_ready_to_pay() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION weekly_closing_ready_to_pay() RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE
                 expected integer;
                 resolved integer;
@@ -126,7 +126,7 @@ return new class extends Migration
                 BEFORE INSERT OR UPDATE ON weekly_closings
                 FOR EACH ROW EXECUTE FUNCTION weekly_closing_ready_to_pay();
 
-            CREATE FUNCTION freeze_authorized_member_results() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION freeze_authorized_member_results() RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE
                 week uuid := CASE WHEN TG_OP = 'DELETE' THEN OLD.week_id ELSE NEW.week_id END;
             BEGIN
@@ -145,7 +145,7 @@ return new class extends Migration
                 BEFORE INSERT OR UPDATE OR DELETE ON weekly_member_results
                 FOR EACH ROW EXECUTE FUNCTION freeze_authorized_member_results();
 
-            CREATE FUNCTION validate_manual_close() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION validate_manual_close() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
                 IF NEW.closed_by IS NULL THEN
                     RETURN NEW;
