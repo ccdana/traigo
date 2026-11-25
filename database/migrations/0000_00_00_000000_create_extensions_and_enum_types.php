@@ -6,21 +6,40 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Tipos ENUM de PostgreSQL usados por las tablas del negocio.
+     * Tipos ENUM de PostgreSQL. Sus valores son los mismos que viajan en la API
+     * (ver el contrato de la API de la app).
      *
      * @var array<string, list<string>>
      */
     private array $enumTypes = [
-        'user_role' => ['customer', 'seller', 'admin'],
-        'order_channel' => ['web', 'pos'],
-        'order_status' => ['pending_payment', 'payment_review', 'paid', 'ready', 'completed', 'cancelled', 'expired'],
+        // Cuentas y aprobaciones
+        'user_role' => ['customer', 'content', 'warehouse', 'wholesale', 'seller', 'systems', 'control', 'management'],
+        'approval_status' => ['pending', 'approved', 'rejected'],
+        // Catálogo y tienda
+        'promotion_discount_type' => ['percentage', 'fixed_amount', 'fixed_price'],
+        'gift_audience' => ['kids', 'home', 'school_sport'],
+        'quote_status' => ['new', 'answered', 'closed'],
+        // Ventas, cobros y caja
+        'order_origin' => ['in_person', 'whatsapp', 'wholesale', 'web'],
+        'order_status' => ['pending_payment', 'payment_review', 'paid', 'ready', 'delivered', 'cancelled', 'expired', 'returned'],
         'delivery_type' => ['pickup', 'delivery'],
         'price_type' => ['unit', 'wholesale', 'combo'],
-        'promotion_discount_type' => ['percentage', 'fixed_amount', 'fixed_price'],
-        'payment_method' => ['qr', 'card'],
-        'payment_status' => ['pending', 'submitted', 'confirmed', 'rejected'],
-        'commission_status' => ['pending', 'paid', 'cancelled'],
-        'movement_type' => ['initial', 'purchase', 'sale_return', 'adjustment_in', 'sale_web', 'sale_pos', 'adjustment_out'],
+        'payment_method' => ['qr', 'transfer', 'cash', 'card'],
+        'payment_status' => ['pending', 'submitted', 'confirmed', 'rejected', 'reversed'],
+        'cash_closing_status' => ['open', 'sent', 'validated', 'observed'],
+        // Inventario
+        'movement_type' => ['initial', 'purchase', 'sale', 'sale_return', 'adjustment_in', 'adjustment_out'],
+        // Comisiones
+        'commission_kind' => ['sale', 'adjustment'],
+        'commission_status' => ['pending', 'earned', 'cancelled'],
+        'settlement_status' => ['open', 'sent', 'authorized', 'returned', 'paid'],
+        // KPI y bono semanal
+        'kpi_unit' => ['count', 'percent'],
+        'evidence_kind' => ['photo', 'link', 'order'],
+        'evidence_status' => ['in_review', 'validated', 'observed'],
+        'compliance_result' => ['pending', 'passes', 'fails'],
+        'bonus_tier' => ['none', 'partial', 'complete', 'superior'],
+        'week_closing_status' => ['open', 'sent', 'authorized', 'returned', 'paid'],
     ];
 
     /**

@@ -8,24 +8,42 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Usuarios (clientes, vendedores y admins) y las tablas de sesión de Laravel.
+     * Usuarios y las tablas de sesión de Laravel.
+     *
+     * - El equipo (integrantes, Jime y Dirección) entra con código + PIN; Jime y
+     *   Dirección además pasan un segundo paso.
+     * - Los clientes de la tienda web entran con email o teléfono y contraseña.
+     *   Comprar no exige cuenta.
      */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id_user')->primary()->default(DB::raw('gen_random_uuid()'));
-            $table->rawColumn('email', 'citext')->nullable()->unique();
-            $table->text('phone')->nullable();
-            $table->text('password_hash')->nullable();
+            $table->rawColumn('role', 'user_role')->default('customer');
+            $table->text('code')->nullable()->unique();
             $table->text('name');
             $table->text('lastname')->nullable();
-            $table->rawColumn('role', 'user_role')->default('customer');
+            $table->text('title')->nullable();
+            $table->rawColumn('email', 'citext')->nullable()->unique();
+            $table->text('phone')->nullable();
+            $table->timestampTz('email_verified_at')->nullable();
+            $table->text('password')->nullable();
+            $table->text('pin_hash')->nullable();
+            $table->smallInteger('failed_login_attempts')->default(0);
+            $table->timestampTz('locked_until')->nullable();
+            $table->timestampTz('last_login_at')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->rememberToken();
             $table->timestampTz('created_at')->useCurrent();
             $table->timestampTz('updated_at')->useCurrent();
         });
 
-        DB::statement('ALTER TABLE users ADD CONSTRAINT users_contact_chk CHECK (email IS NOT NULL OR phone IS NOT NULL)');
+        // El equipo tiene código; un cliente nunca.
+        DB::statement("ALTER TABLE users ADD CONSTRAINT users_code_by_role_chk CHECK ((role = 'customer') = (code IS NULL))");
+        DB::statement('ALTER TABLE users ADD CONSTRAINT users_code_upper_chk CHECK (code IS NULL OR code = upper(code))');
+        DB::statement("ALTER TABLE users ADD CONSTRAINT users_customer_contact_chk CHECK (role <> 'customer' OR email IS NOT NULL OR phone IS NOT NULL)");
+        DB::statement("ALTER TABLE users ADD CONSTRAINT users_pin_only_team_chk CHECK (role <> 'customer' OR pin_hash IS NULL)");
+        DB::statement('ALTER TABLE users ADD CONSTRAINT users_failed_attempts_chk CHECK (failed_login_attempts >= 0)');
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
