@@ -9,7 +9,7 @@ repositorio de la app: `docs/api-contract.md`.
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Base de la API e ingreso: `POST /auth/login`, `/auth/two-factor`, `/auth/two-factor/resend`, `/auth/logout` y `GET /me` | Hecha |
-| 2 | Catálogo y ventas | Pendiente |
+| 2 | Catálogo (`/catalog`) y ventas (`/orders`): registrar, listar, cancelar y subir el comprobante | Hecha |
 | 3 | Inicio, equipo y mi semana | Pendiente |
 | 4 | Almacén | Pendiente |
 | 5 | Panel de Jime | Pendiente |
@@ -39,6 +39,14 @@ Para entrar con el PIN `1234`, como en la demo de la app (solo con
 php artisan db:seed --class=LocalPinSeeder
 ```
 
+El inventario empieza en 0 (el de verdad se cargará desde la app, en la fase 4).
+Para poder vender mientras tanto, carga el stock de ejemplo de la demo (solo en
+desarrollo):
+
+```powershell
+php artisan db:seed --class=LocalStockSeeder
+```
+
 Levanta la API. `0.0.0.0` permite entrar desde un celular de la misma red:
 
 ```powershell
@@ -53,8 +61,11 @@ flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2
 ```
 
 Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`. Mientras falten las fases 2 a 6, la app solo
-completa el ingreso: las demás pantallas responden «no encontrado».
+`storage/logs/laravel.log`. Mientras falten las fases 3 a 6, en la app
+funcionan el ingreso, las pestañas Catálogo y Vender, el detalle del pedido y su
+comprobante. A «Mis pedidos» se llega desde un pedido recién registrado (el
+atajo del Inicio llega con la fase 3). El Inicio y las demás pantallas
+responden «no encontrado».
 
 ## Antes de producción
 
@@ -76,11 +87,20 @@ php artisan traigo:pin JIM-01
   Jime y Dirección, solo con este comando.
 - Tareas programadas (borran códigos y tokens vencidos): ejecuta
   `php artisan schedule:run` cada minuto.
+- **Comprobantes**: se guardan en `storage/app/private/comprobantes`. Esa
+  carpeta tiene que entrar en el **respaldo**, junto con la base.
+- PHP debe aceptar archivos de 5 MB: `upload_max_filesize` de 6M o más y
+  `post_max_size` de 8M o más (por defecto PHP solo acepta 2M).
+- Si el servidor está detrás de un proxy que pone el HTTPS, configura los
+  proxies de confianza (`trustProxies`); si no, los enlaces de los
+  comprobantes saldrían con `http`.
 
 ## Cómo está armado
 
 - `routes/api.php`: todas las rutas, bajo `/api/v1`.
 - `app/Services/Auth`: PIN con bloqueo y el segundo paso por correo.
+- `app/Services/Sales`: precios (misma regla que la app), stock apartado,
+  registrar y cancelar ventas y los comprobantes.
 - `app/Exceptions`: errores en el formato del contrato
   (`{ "message", "code"?, "data"? }`) y en español. Los mensajes de validación
   están en `lang/es`.

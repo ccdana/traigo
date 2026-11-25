@@ -25,6 +25,9 @@ return [
         'window_minutes' => 15,
     ],
 
+    // Minutos que sirve el enlace firmado de un comprobante.
+    'file_link_minutes' => 60,
+
     // Horas que se guarda la respuesta de un envío con Idempotency-Key.
     'idempotency_hours' => 24,
 
