@@ -6,7 +6,10 @@
  */
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CashController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\DispatchController;
+use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\SubmissionController;
 use App\Http\Controllers\Api\V1\TeamController;
@@ -42,6 +45,24 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
     Route::get('catalog', [CatalogController::class, 'index']);
     Route::get('catalog/categories', [CatalogController::class, 'categories']);
     Route::get('catalog/{product}', [CatalogController::class, 'show'])->whereUuid('product');
+
+    // Almacén: despachos, caja del día y stock.
+    Route::middleware('role:warehouse')->group(function () {
+        Route::controller(DispatchController::class)->prefix('warehouse')->group(function () {
+            Route::get('dispatches', 'index');
+            Route::post('orders/{order}/ready', 'ready')->whereUuid('order');
+            Route::post('orders/{order}/delivered', 'delivered')->whereUuid('order');
+        });
+        Route::controller(CashController::class)->prefix('cash')->group(function () {
+            Route::get('today', 'today');
+            Route::get('days/{date}', 'day')->where('date', '\d{4}-\d{2}-\d{2}');
+            Route::post('closings', 'store');
+        });
+        Route::post('inventory/movements', [InventoryController::class, 'movement']);
+        Route::post('inventory/counts', [InventoryController::class, 'storeCount']);
+    });
+    // Jime también ve los conteos (sin ajustar).
+    Route::get('inventory/counts', [InventoryController::class, 'counts'])->middleware('role:warehouse,control');
 
     // Ventas: solo quienes venden, y cada quien las suyas.
     Route::middleware('role:seller,wholesale')->controller(OrderController::class)->group(function () {

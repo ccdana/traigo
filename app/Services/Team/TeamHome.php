@@ -7,7 +7,7 @@ use App\Http\Resources\SaleOrder;
 use App\Models\BonusWeek;
 use App\Models\Order;
 use App\Models\User;
-use App\Services\Cash\CashSummary;
+use App\Services\Cash\CashDay;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -37,7 +37,7 @@ final class TeamHome
             ],
             'month_commission' => $sells ? self::monthCommission($member) : null,
             'today_sales' => $sells ? self::todaySales($member) : [],
-            'cash_today' => $member->role === UserRole::Warehouse ? CashSummary::today() : null,
+            'cash_today' => $member->role === UserRole::Warehouse ? CashDay::homeSummary() : null,
         ];
     }
 

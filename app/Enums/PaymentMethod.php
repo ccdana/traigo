@@ -10,6 +10,17 @@ enum PaymentMethod: string
     case Cash = 'cash';
     case Card = 'card';
 
+    /** Como se muestra en la app. */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Qr => 'QR',
+            self::Transfer => 'Transferencia',
+            self::Cash => 'Efectivo',
+            self::Card => 'Tarjeta',
+        };
+    }
+
     /** Se confirma con la foto del comprobante. */
     public function needsProof(): bool
     {

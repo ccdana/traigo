@@ -11,7 +11,7 @@ repositorio de la app: `docs/api-contract.md`.
 | 1 | Base de la API e ingreso: `POST /auth/login`, `/auth/two-factor`, `/auth/two-factor/resend`, `/auth/logout` y `GET /me` | Hecha |
 | 2 | Catálogo (`/catalog`) y ventas (`/orders`): registrar, listar, cancelar y subir el comprobante | Hecha |
 | 3 | Inicio (`/home`), «Equipo» (`/team/week`), «Mi semana» (`/me/week`), evidencia y entregas de Sistemas | Hecha |
-| 4 | Almacén | Pendiente |
+| 4 | Almacén: despachos (`/warehouse`), caja del día y cierres (`/cash`), stock y conteos (`/inventory`) | Hecha |
 | 5 | Panel de Jime | Pendiente |
 | 6 | «Más» y Dirección | Pendiente |
 
@@ -39,9 +39,9 @@ Para entrar con el PIN `1234`, como en la demo de la app (solo con
 php artisan db:seed --class=LocalPinSeeder
 ```
 
-El inventario empieza en 0 (el de verdad se cargará desde la app, en la fase 4).
-Para poder vender mientras tanto, carga el stock de ejemplo de la demo (solo en
-desarrollo):
+El inventario empieza en 0: el de verdad se carga desde la app (almacén →
+Stock, «Inventario inicial»). Para probar ventas rápido en desarrollo, puedes
+cargar el stock de ejemplo de la demo:
 
 ```powershell
 php artisan db:seed --class=LocalStockSeeder
@@ -61,12 +61,16 @@ flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2
 ```
 
 Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`. Mientras falten las fases 4 a 6, en la app
-funcionan el ingreso y todo lo del equipo menos el almacén: Inicio, Equipo, Mi
-semana, evidencia, entregas, catálogo y ventas. La caja, los despachos (en el
-Inicio de Isaí salen como «No se pudieron cargar»), el stock y el panel de Jime
-y Dirección todavía responden «no encontrado». Los valores reales del KPI los
-cargará Jime (fase 5): hasta entonces el avance sale en 0 %.
+`storage/logs/laravel.log`. Mientras falten las fases 5 y 6, en la app
+funcionan el ingreso, todo lo del equipo y el almacén. Del panel de Jime y
+Dirección solo responde «Más» → Inventario y conteos; lo demás todavía da «no
+encontrado». Por eso los valores reales del KPI siguen en 0 %, los cierres de
+caja quedan «Enviado a Jime» y el efectivo sin confirmar (la comisión y el bono
+lo cuentan recién cuando Jime valida el cierre).
+
+La caja diaria empieza el **1 de diciembre de 2026** (primer día de la
+campaña). Antes, «Caja» muestra lo cobrado hoy, pero al enviarla responde «Ese
+día no tiene caja.».
 
 ## Antes de producción
 
@@ -105,6 +109,11 @@ php artisan traigo:pin JIM-01
   registrar y cancelar ventas y los comprobantes.
 - `app/Services/Team`: Inicio, «Equipo», evidencia y entregas. El puntaje y
   el «cumple» salen de las vistas de la base (las fórmulas del Excel).
+- `app/Services/Cash`: la caja del día y su envío. Cada cobro queda en un solo
+  cierre; el que llega después de enviarlo pasa al siguiente.
+- `app/Services/Warehouse`: despachos (al entregar sale del stock, con su
+  movimiento en el kardex; de un combo salen sus componentes), entradas, ajustes
+  y conteos.
 - `app/Exceptions`: errores en el formato del contrato
   (`{ "message", "code"?, "data"? }`) y en español. Los mensajes de validación
   están en `lang/es`.

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,12 @@ class Order extends Model
             'delivered_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
+    }
+
+    /** Quien vendió; las ventas web no tienen. */
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_id', 'id_user');
     }
 
     /** En el orden en que se agregaron (los ids son consecutivos). */

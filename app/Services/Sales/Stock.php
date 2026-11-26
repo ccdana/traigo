@@ -28,6 +28,16 @@ final class Stock
             ->keyBy('product_id');
     }
 
+    /** Sale de la bodega lo que estaba apartado (al entregar). */
+    public static function ship(string $productId, int $quantity): void
+    {
+        DB::table('inventory')->where('product_id', $productId)->update([
+            'stock' => DB::raw('stock - '.(int) $quantity),
+            'reserved' => DB::raw('reserved - '.(int) $quantity),
+            'updated_at' => now(),
+        ]);
+    }
+
     /** Aparta (cantidad positiva) o libera (negativa) unidades. */
     public static function reserve(string $productId, int $quantity): void
     {

@@ -7,10 +7,9 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Support\Dates;
 use App\Support\FileLinks;
 use App\Support\Money;
-use DateTimeInterface;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /** Un pedido como lo ve quien lo vendió. */
@@ -25,7 +24,7 @@ final class SaleOrder
         return [
             'id' => $order->getKey(),
             'number' => $order->order_number,
-            'created_at' => self::date($order->created_at),
+            'created_at' => Dates::toApi($order->created_at),
             'customer_name' => $order->customer_name,
             'items_label' => self::itemsLabel($order),
             'total' => Money::fromDatabase($order->total_bs),
@@ -50,7 +49,7 @@ final class SaleOrder
             'delivery' => [
                 'type' => $order->delivery_type,
                 'address' => $order->shipping_address,
-                'promised_at' => self::date($order->promised_dispatch_at),
+                'promised_at' => Dates::toApi($order->promised_dispatch_at),
             ],
             'lines' => $order->items->map(fn (OrderItem $item) => [
                 'product_id' => $item->product_id,
@@ -67,10 +66,10 @@ final class SaleOrder
             ])->values(),
             'payment' => self::payment($order, $payment),
             'timeline' => [
-                ['status' => OrderStatus::PendingPayment->value, 'at' => self::date($order->created_at)],
-                ['status' => OrderStatus::Paid->value, 'at' => self::date($order->paid_at)],
-                ['status' => OrderStatus::Ready->value, 'at' => self::date($order->ready_at)],
-                ['status' => OrderStatus::Delivered->value, 'at' => self::date($order->delivered_at)],
+                ['status' => OrderStatus::PendingPayment->value, 'at' => Dates::toApi($order->created_at)],
+                ['status' => OrderStatus::Paid->value, 'at' => Dates::toApi($order->paid_at)],
+                ['status' => OrderStatus::Ready->value, 'at' => Dates::toApi($order->ready_at)],
+                ['status' => OrderStatus::Delivered->value, 'at' => Dates::toApi($order->delivered_at)],
             ],
             'commission' => self::commission($order),
             'can_cancel' => $awaiting,
@@ -111,7 +110,7 @@ final class SaleOrder
             'status' => $payment->status->value,
             'reference' => $payment->reference,
             'proof_url' => FileLinks::temporary($payment->proof_url),
-            'submitted_at' => self::date($payment->submitted_at),
+            'submitted_at' => Dates::toApi($payment->submitted_at),
             'reject_reason' => $payment->reject_reason,
         ];
     }
@@ -161,12 +160,5 @@ final class SaleOrder
             // Con la misma clave gana la última: la de menor posición.
             ->pluck('url', 'product_id')
             ->all();
-    }
-
-    private static function date(?DateTimeInterface $date): ?string
-    {
-        return $date === null
-            ? null
-            : Carbon::instance($date)->timezone(config('app.timezone'))->toIso8601String();
     }
 }
