@@ -12,7 +12,7 @@ repositorio de la app: `docs/api-contract.md`.
 | 2 | Catálogo (`/catalog`) y ventas (`/orders`): registrar, listar, cancelar y subir el comprobante | Hecha |
 | 3 | Inicio (`/home`), «Equipo» (`/team/week`), «Mi semana» (`/me/week`), evidencia y entregas de Sistemas | Hecha |
 | 4 | Almacén: despachos (`/warehouse`), caja del día y cierres (`/cash`), stock y conteos (`/inventory`) | Hecha |
-| 5 | Panel de Jime | Pendiente |
+| 5 | Panel de Jime (`/control`): resumen y pendientes, pagos, evidencia y valores, cajas, entregas, devoluciones y duplicados, cumplimiento, cierre semanal, bono y comisiones | Hecha |
 | 6 | «Más» y Dirección | Pendiente |
 
 ## Instalar en una PC de desarrollo
@@ -61,12 +61,12 @@ flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2
 ```
 
 Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`. Mientras falten las fases 5 y 6, en la app
-funcionan el ingreso, todo lo del equipo y el almacén. Del panel de Jime y
-Dirección solo responde «Más» → Inventario y conteos; lo demás todavía da «no
-encontrado». Por eso los valores reales del KPI siguen en 0 %, los cierres de
-caja quedan «Enviado a Jime» y el efectivo sin confirmar (la comisión y el bono
-lo cuentan recién cuando Jime valida el cierre).
+`storage/logs/laravel.log`. Mientras falte la fase 6, en la app funcionan el
+ingreso, todo lo del equipo, el almacén y el panel de Jime, menos «Más» →
+Precios, Auditoría y reportes y Accesos. Dirección ve el Resumen, el
+Cumplimiento, los Bonos y las Comisiones, pero **todavía no puede autorizar**:
+un cierre semanal enviado queda «Enviado a Dirección» y esa semana congelada
+(ojo si lo envías en tu PC antes de la fase 6).
 
 La caja diaria empieza el **1 de diciembre de 2026** (primer día de la
 campaña). Antes, «Caja» muestra lo cobrado hoy, pero al enviarla responde «Ese
@@ -109,6 +109,10 @@ php artisan traigo:pin JIM-01
   registrar y cancelar ventas y los comprobantes.
 - `app/Services/Team`: Inicio, «Equipo», evidencia y entregas. El puntaje y
   el «cumple» salen de las vistas de la base (las fórmulas del Excel).
+  `WeekLock` congela la semana mientras su cierre está con Dirección.
+- `app/Services/Control`: el panel de Jime. La semana que se muestra, la
+  conciliación, las validaciones, las devoluciones, el cierre semanal con la
+  foto del bono y las liquidaciones de comisiones.
 - `app/Services/Cash`: la caja del día y su envío. Cada cobro queda en un solo
   cierre; el que llega después de enviarlo pasa al siguiente.
 - `app/Services/Warehouse`: despachos (al entregar sale del stock, con su

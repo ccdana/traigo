@@ -34,4 +34,7 @@ return [
     // Peticiones por minuto de una sesión.
     'api_requests_per_minute' => 120,
 
+    // La cuenta de Traigo que Jime compara con cada comprobante.
+    'payment_account' => 'Traigo',
+
 ];

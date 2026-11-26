@@ -81,7 +81,7 @@ class SubmitEvidence
         // Una semana que todavía no empieza no existe para el equipo.
         BonusWeek::started(BonusWeek::query()->findOrFail($weekId)->number);
 
-        if (! MemberKpi::acceptsEvidence($member->getKey(), $weekId)) {
+        if (! MemberKpi::acceptsEvidence($member->getKey(), $weekId, lock: true)) {
             throw ApiException::conflict('week_closed', 'Esta semana ya se cerró.');
         }
 

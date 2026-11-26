@@ -43,7 +43,7 @@ class DispatchTest extends CampaignTestCase
         foreach ($products as $code => $quantity) {
             $product = $this->product((string) $code);
             DB::table('order_items')->insert([
-                'order_id' => $id, 'product_id' => $product->getKey(), 'item_code' => $product->item_code,
+                'id_order_item' => (string) Str::uuid7(), 'order_id' => $id, 'product_id' => $product->getKey(), 'item_code' => $product->item_code,
                 'product_name' => $product->name, 'unit_price_bs' => 10, 'quantity' => $quantity,
             ]);
             Stock::reserve($product->getKey(), $quantity);
@@ -52,7 +52,7 @@ class DispatchTest extends CampaignTestCase
         foreach ($combos as $comboId => $quantity) {
             $combo = DB::table('combos')->where('id_combo', $comboId)->first();
             DB::table('order_items')->insert([
-                'order_id' => $id, 'combo_id' => $comboId, 'item_code' => $combo->item_code,
+                'id_order_item' => (string) Str::uuid7(), 'order_id' => $id, 'combo_id' => $comboId, 'item_code' => $combo->item_code,
                 'product_name' => $combo->name, 'price_type' => 'combo', 'unit_price_bs' => $combo->price_bs,
                 'quantity' => $quantity,
             ]);
@@ -124,6 +124,24 @@ class DispatchTest extends CampaignTestCase
             ->assertJsonPath('data.0.promised_at', '2026-12-03T13:00:00-04:00')
             ->assertJsonPath('data.2.promised_at', null)
             ->assertJsonPath('data.2.shipping_address', 'Calle Sucre 245, Cochabamba');
+    }
+
+    #[Test]
+    public function un_qr_confirmado_despues_de_la_hora_no_es_atraso_de_almacen(): void
+    {
+        $inTime = $this->sell($this->sale(with: ['delivery' => ['promised_at' => '2026-12-03T13:00:00-04:00']]))
+            ->json('data.id');
+        $this->confirmPayment($inTime);
+        $paidLate = $this->sell($this->sale(with: ['delivery' => ['promised_at' => '2026-12-03T13:30:00-04:00']]))
+            ->json('data.id');
+        // «Se lo lleva ahora»: el efectivo se cobra al registrar, así que cuenta.
+        $now = $this->cashSale(promisedAt: '2026-12-03T11:50:00-04:00');
+        $this->travelTo('2026-12-03 14:00:00');
+        $this->confirmPayment($paidLate);
+
+        $late = collect($this->dispatches()->json('data'))->pluck('is_late', 'order_id');
+
+        $this->assertSame([true, false, true], [$late[$inTime], $late[$paidLate], $late[$now]]);
     }
 
     #[Test]

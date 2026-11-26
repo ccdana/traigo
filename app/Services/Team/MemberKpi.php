@@ -136,17 +136,13 @@ final class MemberKpi
     }
 
     /**
-     * Si todavía se puede subir evidencia: no cuando Dirección ya autorizó la
-     * semana ni cuando Jime cerró la de esta persona.
+     * Si todavía se puede subir evidencia: no mientras el cierre de la semana
+     * está con Dirección o ya se autorizó, ni cuando Jime cerró la de esta
+     * persona.
      */
-    public static function acceptsEvidence(string $userId, string $weekId): bool
+    public static function acceptsEvidence(string $userId, string $weekId, bool $lock = false): bool
     {
-        $authorized = DB::table('weekly_closings')
-            ->where('week_id', $weekId)
-            ->whereIn('status', ['authorized', 'paid'])
-            ->exists();
-
-        return ! $authorized && ! DB::table('weekly_member_results')
+        return ! WeekLock::isFrozen($weekId, $lock) && ! DB::table('weekly_member_results')
             ->where('week_id', $weekId)
             ->where('user_id', $userId)
             ->whereNotNull('closed_by')

@@ -34,7 +34,7 @@ class SubmitDeliverable
                     throw ApiException::conflict('deliverable_validated', 'Jime ya validó esta entrega.');
                 }
 
-                if (! MemberKpi::acceptsEvidence($member->getKey(), $deliverable->week_id)) {
+                if (! MemberKpi::acceptsEvidence($member->getKey(), $deliverable->week_id, lock: true)) {
                     throw ApiException::conflict('week_closed', 'Esta semana ya se cerró.');
                 }
 

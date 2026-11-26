@@ -8,6 +8,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CashController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\Control;
 use App\Http\Controllers\Api\V1\DispatchController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -63,6 +64,64 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
     });
     // Jime también ve los conteos (sin ajustar).
     Route::get('inventory/counts', [InventoryController::class, 'counts'])->middleware('role:warehouse,control');
+
+    // El panel de Jime. Dirección ve el resumen, el cumplimiento, el bono y las
+    // comisiones.
+    Route::prefix('control')->group(function () {
+        Route::middleware('role:control,management')->group(function () {
+            Route::get('summary', [Control\DashboardController::class, 'summary']);
+            Route::get('compliance', [Control\DashboardController::class, 'compliance']);
+            Route::get('bonus', [Control\ClosingController::class, 'bonus']);
+            Route::get('commissions', [Control\CommissionController::class, 'show']);
+        });
+
+        Route::middleware('role:control')->group(function () {
+            Route::get('pending', [Control\DashboardController::class, 'pending']);
+
+            Route::controller(Control\PaymentController::class)->prefix('payments/{payment}')->group(function () {
+                Route::get('', 'show')->whereUuid('payment');
+                Route::post('confirm', 'confirm')->whereUuid('payment');
+                Route::post('reject', 'reject')->whereUuid('payment');
+            });
+
+            Route::controller(Control\KpiController::class)->group(function () {
+                Route::get('kpi-results/{result}', 'show')->whereUuid('result');
+                Route::post('kpi-results/{result}/validate', 'approve')->whereUuid('result');
+                Route::post('kpi-results/{result}/observe', 'observe')->whereUuid('result');
+                Route::get('members/{member}/week', 'memberWeek')->whereUuid('member');
+            });
+
+            Route::controller(Control\CashClosingController::class)->prefix('cash-closings/{closing}')->group(function () {
+                Route::get('', 'show')->whereUuid('closing');
+                Route::post('validate', 'approve')->whereUuid('closing');
+                Route::post('observe', 'observe')->whereUuid('closing');
+            });
+
+            Route::controller(Control\DeliverableController::class)->prefix('deliverables')->group(function () {
+                Route::get('', 'index');
+                Route::post('{deliverable}/validate', 'approve')->whereUuid('deliverable');
+                Route::post('{deliverable}/reject', 'reject')->whereUuid('deliverable');
+            });
+
+            Route::controller(Control\OrderController::class)->prefix('orders')->group(function () {
+                Route::get('', 'index');
+                Route::get('{order}', 'show')->whereUuid('order');
+                Route::post('{order}/return', 'returnOrder')->whereUuid('order');
+                Route::post('{order}/duplicate', 'duplicate')->whereUuid('order');
+            });
+
+            Route::controller(Control\ClosingController::class)->group(function () {
+                Route::get('weekly-closing', 'show');
+                Route::post('weekly-closing/{week}/send', 'send')->whereNumber('week');
+                Route::post('bonus/{week}/members/{member}/paid', 'paid')->whereNumber('week')->whereUuid('member');
+            });
+
+            Route::controller(Control\CommissionController::class)->prefix('commissions/{month}')->group(function () {
+                Route::post('send', 'send')->where('month', '\d{4}-(0[1-9]|1[0-2])');
+                Route::post('paid', 'paid')->where('month', '\d{4}-(0[1-9]|1[0-2])');
+            });
+        });
+    });
 
     // Ventas: solo quienes venden, y cada quien las suyas.
     Route::middleware('role:seller,wholesale')->controller(OrderController::class)->group(function () {
