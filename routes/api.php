@@ -6,6 +6,7 @@
  */
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\AuthorizationController;
 use App\Http\Controllers\Api\V1\CashController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\Control;
@@ -65,18 +66,31 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
     // Jime también ve los conteos (sin ajustar).
     Route::get('inventory/counts', [InventoryController::class, 'counts'])->middleware('role:warehouse,control');
 
-    // El panel de Jime. Dirección ve el resumen, el cumplimiento, el bono y las
-    // comisiones.
+    // El panel de Jime. Dirección ve el resumen, el cumplimiento, el bono, las
+    // comisiones, los precios, el historial y los reportes.
     Route::prefix('control')->group(function () {
         Route::middleware('role:control,management')->group(function () {
             Route::get('summary', [Control\DashboardController::class, 'summary']);
             Route::get('compliance', [Control\DashboardController::class, 'compliance']);
             Route::get('bonus', [Control\ClosingController::class, 'bonus']);
             Route::get('commissions', [Control\CommissionController::class, 'show']);
+            Route::get('products/{product}', [Control\ProductController::class, 'show'])->whereUuid('product');
+            Route::get('audit', [Control\HistoryController::class, 'audit']);
+            Route::get('reports/{type}', [Control\HistoryController::class, 'report'])
+                ->whereIn('type', ['week', 'cash', 'commissions']);
         });
 
         Route::middleware('role:control')->group(function () {
             Route::get('pending', [Control\DashboardController::class, 'pending']);
+            Route::post('products/{product}/price-changes', [Control\ProductController::class, 'propose'])
+                ->whereUuid('product');
+            Route::get('system-status', [Control\HistoryController::class, 'status']);
+
+            Route::controller(Control\MemberController::class)->prefix('members')->group(function () {
+                Route::get('', 'index');
+                Route::post('{member}/pin', 'resetPin')->whereUuid('member');
+                Route::post('{member}/revoke-sessions', 'revoke')->whereUuid('member');
+            });
 
             Route::controller(Control\PaymentController::class)->prefix('payments/{payment}')->group(function () {
                 Route::get('', 'show')->whereUuid('payment');
@@ -122,6 +136,19 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
             });
         });
     });
+
+    // Dirección autoriza o devuelve.
+    Route::middleware('role:management')->controller(AuthorizationController::class)
+        ->prefix('management/authorizations')
+        ->group(function () {
+            // El id es el número de semana, el mes (2026-12) o un UUID.
+            $where = ['type' => 'weekly_bonus|commissions|price_change|promotion', 'id' => '[0-9a-f-]{1,36}'];
+
+            Route::get('', 'index');
+            Route::get('{type}/{id}', 'show')->where($where);
+            Route::post('{type}/{id}/approve', 'approve')->where($where);
+            Route::post('{type}/{id}/return', 'sendBack')->where($where);
+        });
 
     // Ventas: solo quienes venden, y cada quien las suyas.
     Route::middleware('role:seller,wholesale')->controller(OrderController::class)->group(function () {

@@ -14,6 +14,17 @@ final class Dates
         1 => 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
     ];
 
+    private const FULL_MONTHS = [
+        1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
+        'octubre', 'noviembre', 'diciembre',
+    ];
+
+    /** «diciembre». */
+    public static function monthName(DateTimeInterface|string $date): string
+    {
+        return self::FULL_MONTHS[Carbon::parse($date)->month];
+    }
+
     /** «7 dic». */
     public static function short(DateTimeInterface|string $date): string
     {

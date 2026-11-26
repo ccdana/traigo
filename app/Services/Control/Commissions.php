@@ -66,11 +66,7 @@ class Commissions
         $settlement = DB::table('commission_settlements')->where('period', $period->toDateString())->first();
         $status = $settlement->status ?? 'open';
 
-        // Enviada, se muestra como se envió.
-        $query = in_array($status, self::SENT, true)
-            ? DB::table('commissions as c')->where('c.settlement_id', $settlement->id_commission_settlement)
-            : self::open($period, $settlement?->id_commission_settlement);
-        $rows = $query->get(['c.seller_id', 'c.order_id', 'c.kind', 'c.amount_bs']);
+        $rows = self::rows($period, $settlement)->get(['c.seller_id', 'c.order_id', 'c.kind', 'c.amount_bs']);
 
         $members = self::sellers()->map(fn (object $seller) => self::row($seller, $rows->where('seller_id', $seller->id_user)));
         $ratesPending = $rows->contains(fn (object $row) => $row->amount_bs === null);
@@ -84,6 +80,33 @@ class Commissions
             'return_reason' => $status === 'returned' ? $settlement->return_reason : null,
             'members' => $members->values()->all(),
         ];
+    }
+
+    /** Cada comisión de la liquidación de ese mes, para el reporte. */
+    public static function lines(string $month): Collection
+    {
+        $period = self::period($month);
+        $settlement = DB::table('commission_settlements')->where('period', $period->toDateString())->first();
+
+        return self::rows($period, $settlement)
+            ->join('orders as o', 'o.id_order', '=', 'c.order_id')
+            ->join('users as u', 'u.id_user', '=', 'c.seller_id')
+            ->leftJoin('order_items as i', 'i.id_order_item', '=', 'c.order_item_id')
+            ->orderBy('u.name')
+            ->orderBy('c.earned_at')
+            ->orderBy('o.order_number')
+            ->get([
+                'c.earned_at', 'c.kind', 'c.base_bs', 'c.rate_pct', 'c.amount_bs', 'o.order_number',
+                'u.name as seller', 'i.item_code', 'i.product_name', 'i.quantity',
+            ]);
+    }
+
+    /** Enviada, se muestra como se envió. */
+    private static function rows(Carbon $period, ?object $settlement): Builder
+    {
+        return $settlement && in_array($settlement->status, self::SENT, true)
+            ? DB::table('commissions as c')->where('c.settlement_id', $settlement->id_commission_settlement)
+            : self::open($period, $settlement?->id_commission_settlement);
     }
 
     /** Manda la liquidación del mes a Dirección, solo cuando el mes terminó. */

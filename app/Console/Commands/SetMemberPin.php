@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\FindsMember;
-use App\Models\TwoFactorChallenge;
+use App\Services\Auth\MemberAccess;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Hash;
 
 /**
  * Pone o cambia un PIN desde el servidor: para el primer ingreso y para las
@@ -43,16 +42,7 @@ class SetMemberPin extends Command
             return self::FAILURE;
         }
 
-        $member->update([
-            'pin_hash' => Hash::make($pin),
-            'failed_login_attempts' => 0,
-            'locked_until' => null,
-        ]);
-        $member->tokens()->delete();
-        TwoFactorChallenge::query()
-            ->where('user_id', $member->getKey())
-            ->whereNull('consumed_at')
-            ->update(['consumed_at' => now()]);
+        MemberAccess::resetPin($member, $pin);
 
         $this->info("PIN de {$member->name} cambiado. Sus sesiones se cerraron.");
 

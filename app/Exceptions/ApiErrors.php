@@ -87,7 +87,7 @@ class ApiErrors
      * Los disparadores de la base ya escriben sus mensajes en español; los de
      * una restricción (`violates check constraint …`) no se muestran.
      */
-    private static function ruleMessage(QueryException $e): string
+    public static function ruleMessage(QueryException $e): string
     {
         $detail = $e->getPrevious()?->getMessage() ?? '';
 

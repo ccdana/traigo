@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\Sales\OrderUnits;
 use App\Services\Sales\Stock;
+use App\Services\Team\WeekLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -189,6 +190,15 @@ class ControlOrders
     private function closePayments(User $jime, Order $order, string $reason): void
     {
         $payments = Payment::query()->where('order_id', $order->getKey())->lockForUpdate()->get();
+
+        // Si lo devuelto contaba para un bono que Dirección está autorizando,
+        // la devolución espera a que termine (y la autorización la ve).
+        foreach ($payments->where('status', PaymentStatus::Confirmed) as $payment) {
+            $week = WeekLock::weekOfDay($payment->received_at->timezone(config('app.timezone'))->toDateString());
+            if ($week !== null) {
+                WeekLock::status($week, lock: true);
+            }
+        }
 
         foreach ($payments as $payment) {
             $values = match ($payment->status) {

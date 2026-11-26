@@ -183,7 +183,7 @@ class WeeklyClosings
     }
 
     /** @return array{ok: bool, detail: string} */
-    private static function paymentsCheck(BonusWeek $week): array
+    public static function paymentsCheck(BonusWeek $week): array
     {
         $counts = DB::table('payments as p')
             ->join('orders as o', 'o.id_order', '=', 'p.order_id')

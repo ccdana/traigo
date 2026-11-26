@@ -28,6 +28,15 @@ final class Money
         return ($cents < 0 ? '-' : '').intdiv(abs($cents), 100).'.'.str_pad((string) (abs($cents) % 100), 2, '0', STR_PAD_LEFT);
     }
 
+    /** Para textos que lee la gente, como en la app: «Bs 1.340» o «Bs 86,40». */
+    public static function display(int $cents): string
+    {
+        $whole = number_format(intdiv(abs($cents), 100), 0, ',', '.');
+        $fraction = abs($cents) % 100;
+
+        return ($cents < 0 ? '−' : '').'Bs '.$whole.($fraction === 0 ? '' : ','.str_pad((string) $fraction, 2, '0', STR_PAD_LEFT));
+    }
+
     /** Lo que devuelve la base (o nulo), con el formato de la API. */
     public static function fromDatabase(string|int|null $amount): ?string
     {

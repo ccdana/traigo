@@ -3,41 +3,11 @@
 namespace Tests\Feature\Api;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Cumplimiento, cierre semanal y bono. La semana 1 va del 1 al 6 de diciembre. */
 class WeeklyClosingTest extends ControlTestCase
 {
-    /** Un cobro confirmado grande de la web, para llegar a un escalón. */
-    private function collect(string $amount, string $received = '2026-12-03 11:00:00'): string
-    {
-        $id = (string) Str::uuid7();
-        DB::table('orders')->insert([
-            'id_order' => $id, 'origin' => 'web', 'status' => 'delivered', 'customer_name' => 'Mayorista web',
-            'paid_at' => $received, 'created_at' => $received,
-        ]);
-        DB::table('payments')->insert([
-            'order_id' => $id, 'method' => 'transfer', 'status' => 'confirmed', 'amount_bs' => $amount,
-            'proof_url' => 'comprobantes/web.jpg', 'submitted_at' => $received, 'reviewed_at' => $received,
-            'received_at' => $received, 'created_at' => $received,
-        ]);
-
-        return $id;
-    }
-
-    /** Lunes 7: la semana 1 con todo cargado, salvo lo que se indique. */
-    private function readyToClose(array $except = [], bool $deliverSystems = true): void
-    {
-        $this->collect('41600');
-        $this->travelTo('2026-12-07 10:00:00');
-        $this->loadTeam(except: $except);
-        if ($deliverSystems) {
-            $this->deliverAll('SIS-06');
-            $this->deliverAll('SIS-07');
-        }
-    }
-
     #[Test]
     public function el_panel_abre_la_semana_que_falta_cerrar(): void
     {
@@ -163,7 +133,7 @@ class WeeklyClosingTest extends ControlTestCase
     #[Test]
     public function el_bono_es_la_foto_enviada_y_se_paga_con_la_autorizacion(): void
     {
-        $order = $this->collect('100', '2026-12-04 11:00:00');
+        $order = $this->webPayment('100', '2026-12-04 11:00:00');
         $this->readyToClose(except: ['SIS-07']);
         $this->control('bonus')
             ->assertOk()

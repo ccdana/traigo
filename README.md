@@ -13,12 +13,14 @@ repositorio de la app: `docs/api-contract.md`.
 | 3 | Inicio (`/home`), «Equipo» (`/team/week`), «Mi semana» (`/me/week`), evidencia y entregas de Sistemas | Hecha |
 | 4 | Almacén: despachos (`/warehouse`), caja del día y cierres (`/cash`), stock y conteos (`/inventory`) | Hecha |
 | 5 | Panel de Jime (`/control`): resumen y pendientes, pagos, evidencia y valores, cajas, entregas, devoluciones y duplicados, cumplimiento, cierre semanal, bono y comisiones | Hecha |
-| 6 | «Más» y Dirección | Pendiente |
+| 6 | «Más» y Dirección: precios y sus cambios, autorizaciones (`/management`), historial, reportes en Excel, estado de respaldos y accesos | Hecha |
+
+La app ya no tiene nada pendiente del backend. La tienda web no se hizo.
 
 ## Instalar en una PC de desarrollo
 
-Requiere PHP 8.3 o superior (con `pdo_pgsql`) y PostgreSQL 13 o superior. Laragon
-ya trae los dos.
+Requiere PHP 8.3 o superior (con `pdo_pgsql` y `zip`, para los Excel) y
+PostgreSQL 13 o superior. Laragon ya trae todo.
 
 ```powershell
 composer install
@@ -61,12 +63,7 @@ flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2
 ```
 
 Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`. Mientras falte la fase 6, en la app funcionan el
-ingreso, todo lo del equipo, el almacén y el panel de Jime, menos «Más» →
-Precios, Auditoría y reportes y Accesos. Dirección ve el Resumen, el
-Cumplimiento, los Bonos y las Comisiones, pero **todavía no puede autorizar**:
-un cierre semanal enviado queda «Enviado a Dirección» y esa semana congelada
-(ojo si lo envías en tu PC antes de la fase 6).
+`storage/logs/laravel.log`.
 
 La caja diaria empieza el **1 de diciembre de 2026** (primer día de la
 campaña). Antes, «Caja» muestra lo cobrado hoy, pero al enviarla responde «Ese
@@ -88,13 +85,28 @@ php artisan traigo:pin JIM-01
 ```
 
   El PIN se escribe sin que se vea. Cambiarlo cierra las sesiones de la persona.
-  Las cuentas del equipo también las repone Jime desde la app (fase 6); las de
+  Las cuentas del equipo también las repone Jime desde «Más» → Accesos; las de
   Jime y Dirección, solo con este comando.
 - Tareas programadas (borran códigos y tokens vencidos): ejecuta
   `php artisan schedule:run` cada minuto.
 - **Archivos**: comprobantes, evidencias y entregas se guardan en
   `storage/app/private`. Esa carpeta tiene que entrar en el **respaldo**, junto
   con la base.
+- **Respaldos**: el backend no los hace. Que el hosting (o un script) respalde
+  cada día la base y esa carpeta y, al terminar, ejecute:
+
+```powershell
+php artisan traigo:respaldo
+```
+
+  Cada vez que se pruebe restaurar uno (el Excel lo exige):
+
+```powershell
+php artisan traigo:respaldo restauracion
+```
+
+  Con `--fecha="2026-12-06 03:00"` se anota otra hora. La app lo muestra en
+  «Más»; mientras no se anote, dice que no hay datos.
 - PHP debe aceptar archivos de 5 MB: `upload_max_filesize` de 6M o más y
   `post_max_size` de 8M o más (por defecto PHP solo acepta 2M).
 - Si el servidor está detrás de un proxy que pone el HTTPS, configura los
@@ -112,7 +124,12 @@ php artisan traigo:pin JIM-01
   `WeekLock` congela la semana mientras su cierre está con Dirección.
 - `app/Services/Control`: el panel de Jime. La semana que se muestra, la
   conciliación, las validaciones, las devoluciones, el cierre semanal con la
-  foto del bono y las liquidaciones de comisiones.
+  foto del bono, las liquidaciones de comisiones, los cambios de precio, el
+  historial en palabras y el estado de los respaldos.
+- `app/Services/Management`: lo que Dirección autoriza o devuelve (bono,
+  comisiones, precios y promociones).
+- `app/Services/Reports`: los tres Excel, con `openspout`. Los textos van como
+  texto para que nada de lo que escribe la gente se vuelva una fórmula.
 - `app/Services/Cash`: la caja del día y su envío. Cada cobro queda en un solo
   cierre; el que llega después de enviarlo pasa al siguiente.
 - `app/Services/Warehouse`: despachos (al entregar sale del stock, con su
