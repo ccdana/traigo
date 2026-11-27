@@ -40,7 +40,9 @@ class PriceAuthorization implements AuthorizationKind
         $checks = ['Las ventas ya registradas conservan su precio.'];
 
         if (isset($changes['commission_pct'])) {
-            $waiting = PriceChanges::withoutRate($product->id_product)->distinct()->count('order_id');
+            $waiting = PriceChanges::withoutRate($product->id_product)
+                ->join('order_items as source_line', 'source_line.id_order_item', '=', 'commissions.order_item_id')
+                ->distinct()->count('source_line.order_id');
             array_unshift($checks, 'Las ventas sin % de este producto que no se liquidaron toman esta comisión'
                 .($waiting === 0 ? '.' : ($waiting === 1 ? ' (hoy, 1).' : " (hoy, {$waiting}).")));
         }

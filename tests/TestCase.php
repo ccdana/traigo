@@ -7,10 +7,9 @@ use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
-    // La base crea tipos y vistas propios: hay que borrarlos antes de migrar.
     protected $dropViews = true;
 
-    protected $dropTypes = true;
+    // Conservar los ENUM al reconstruir la base, como en migrate:fresh sin opciones.
 
     public function createApplication()
     {

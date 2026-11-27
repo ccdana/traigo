@@ -68,11 +68,12 @@ class SubmitEvidence
     /** Bloqueado: Jime no puede validarlo mientras se agrega. */
     private function lockOwnResult(User $member, string $resultId): object
     {
-        return DB::table('kpi_weekly_results')
-            ->where('id_kpi_weekly_result', $resultId)
-            ->where('user_id', $member->getKey())
-            ->lockForUpdate()
-            ->first()
+        return DB::table('kpi_weekly_results as r')
+            ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
+            ->where('r.id_kpi_weekly_result', $resultId)
+            ->where('i.user_id', $member->getKey())
+            ->lock('for update of r')
+            ->first(['r.*'])
             ?? throw ApiException::notFound('No encontramos ese indicador entre los tuyos.');
     }
 

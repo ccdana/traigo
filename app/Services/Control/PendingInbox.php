@@ -76,7 +76,7 @@ final class PendingInbox
     private static function evidence(): Collection
     {
         return DB::table('kpi_evidence as e')
-            ->join('kpi_weekly_results as r', 'r.id_kpi_weekly_result', '=', 'e.kpi_weekly_result_id')
+            ->join('v_kpi_results as r', 'r.id_kpi_weekly_result', '=', 'e.kpi_weekly_result_id')
             ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
             ->join('users as u', 'u.id_user', '=', 'r.user_id')
             ->where('e.status', 'in_review')

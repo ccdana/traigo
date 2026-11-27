@@ -83,8 +83,8 @@ final class WeekBonusData
     {
         return $query
             ->join('users as u', 'u.id_user', '=', 'r.user_id')
-            ->join('team_profiles as p', 'p.user_id', '=', 'r.user_id')
-            ->orderBy('p.sort_order');
+            ->leftJoin('team_profiles as p', 'p.user_id', '=', 'r.user_id')
+            ->orderBy('p.sort_order')->orderBy('r.user_id');
     }
 
     private static function member(object $row, ?string $amount): array

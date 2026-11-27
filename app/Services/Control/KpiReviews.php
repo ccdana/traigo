@@ -18,7 +18,7 @@ class KpiReviews
     /** @return array<string, mixed> */
     public static function view(string $resultId): array
     {
-        $result = DB::table('kpi_weekly_results')->where('id_kpi_weekly_result', $resultId)->first()
+        $result = DB::table('v_kpi_results')->where('id_kpi_weekly_result', $resultId)->first()
             ?? throw self::missing();
         $member = User::query()->findOrFail($result->user_id);
         $week = BonusWeek::query()->findOrFail($result->week_id);
@@ -64,10 +64,11 @@ class KpiReviews
 
     private function lockEditable(User $jime, string $resultId): object
     {
-        $result = DB::table('kpi_weekly_results')
-            ->where('id_kpi_weekly_result', $resultId)
-            ->lockForUpdate()
-            ->first()
+        $result = DB::table('kpi_weekly_results as r')
+            ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
+            ->where('r.id_kpi_weekly_result', $resultId)
+            ->lock('for update of r')
+            ->first(['r.*', 'i.user_id'])
             ?? throw self::missing();
 
         if ($result->user_id === $jime->getKey()) {

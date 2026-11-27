@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 
 class TeamWeekTest extends CampaignTestCase
@@ -61,5 +62,17 @@ class TeamWeekTest extends CampaignTestCase
         $this->api('ALI-04')->getJson('/api/v1/team/week')
             ->assertJsonPath('data.me.partial_score_percent', 99)
             ->assertJsonPath('data.me.compliance', 'passes');
+    }
+
+    #[Test]
+    public function cambiar_el_perfil_no_modifica_el_bono_de_una_semana_asignada(): void
+    {
+        DB::table('team_profiles')->where('user_id', $this->member('ALI-04')->getKey())
+            ->update(['bonus_share_pct' => 15, 'min_kpi_pct' => 90]);
+
+        $this->api('ALI-04')->getJson('/api/v1/team/week')
+            ->assertOk()
+            ->assertJsonPath('data.me.fund_share_rate', '0.20')
+            ->assertJsonPath('data.me.minimum_percent', 80);
     }
 }

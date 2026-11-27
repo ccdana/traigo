@@ -102,7 +102,7 @@ final class MemberKpi
         $rows = DB::table('kpi_weekly_results as r')
             ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
             ->where('r.week_id', $this->week->getKey())
-            ->where('r.user_id', $this->member->getKey())
+            ->where('i.user_id', $this->member->getKey())
             ->orderBy('i.sort_order')
             ->orderBy('i.name')
             ->get([

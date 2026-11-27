@@ -1,8 +1,8 @@
 # Traigo · backend
 
-API en Laravel 13 de la app **Traigo Equipo** (y, más adelante, de la tienda web
-de Navidad). El contrato completo (endpoints, datos y reglas) está en el
-repositorio de la app: `docs/api-contract.md`.
+Backend Laravel 13 de la app **Traigo Equipo** y de la tienda web de TRAIGO.
+El contrato de la API móvil está en el repositorio de la app, en
+`docs/api-contract.md`.
 
 ## Qué hay hecho
 
@@ -15,7 +15,9 @@ repositorio de la app: `docs/api-contract.md`.
 | 5 | Panel de Jime (`/control`): resumen y pendientes, pagos, evidencia y valores, cajas, entregas, devoluciones y duplicados, cumplimiento, cierre semanal, bono y comisiones | Hecha |
 | 6 | «Más» y Dirección: precios y sus cambios, autorizaciones (`/management`), historial, reportes en Excel, estado de respaldos y accesos | Hecha |
 
-La app ya no tiene nada pendiente del backend. La tienda web no se hizo.
+La tienda web usa el mismo catálogo, pedidos e inventario que la app.
+El cliente realiza el pago por QR y carga su comprobante. Jime lo revisa y
+almacén prepara y despacha el pedido.
 
 ## Instalar en una PC de desarrollo
 
@@ -33,6 +35,22 @@ Crea la base `traigo` y completa `DB_*` en `.env`. Después:
 ```powershell
 php artisan migrate --seed
 ```
+
+Si una instalación de desarrollo se interrumpe al crear los tipos de
+PostgreSQL, vuelve a ejecutar `php artisan migrate --seed`. La migración
+reutiliza los tipos que coinciden con el esquema. Usa
+`php artisan migrate:fresh --seed` solo para reiniciar una base descartable,
+porque borra sus tablas y datos.
+
+Para abrir la tienda en la raíz del servidor, instala y compila sus recursos:
+
+```powershell
+npm ci
+npm run build
+```
+
+La tienda requiere que Dirección cargue el QR de pago en el panel y que haya
+stock disponible para recibir pedidos.
 
 Para entrar con el PIN `1234`, como en la demo de la app (solo con
 `APP_ENV=local`). También pone un correo de prueba a Jime y Dirección:
@@ -115,7 +133,8 @@ php artisan traigo:respaldo restauracion
 
 ## Cómo está armado
 
-- `routes/api.php`: todas las rutas, bajo `/api/v1`.
+- `routes/web.php`: tienda pública y panel web del equipo.
+- `routes/api.php`: rutas de la app móvil, bajo `/api/v1`.
 - `app/Services/Auth`: PIN con bloqueo y el segundo paso por correo.
 - `app/Services/Sales`: precios (misma regla que la app), stock apartado,
   registrar y cancelar ventas y los comprobantes.
@@ -145,6 +164,43 @@ php artisan traigo:respaldo restauracion
 
 La base de datos (`database/`) sale de los Excel de la campaña: ella también
 impide romper las reglas de negocio y escribe el historial.
+
+## Migración del esquema relacional
+
+Las claves internas de líneas de pedido, comisiones y liquidaciones, detalles
+de caja, atributos e imágenes de combo y asistencia usan identidades bigint.
+Los UUID del contrato móvil, los tokens de seguimiento y las claves de
+idempotencia conservan su formato. La tabla de equivalencias
+`legacy_internal_identifiers` permite rastrear un identificador histórico.
+
+- **1FN.** Las líneas, los cobros, los atributos y las evidencias se guardan
+  como filas. El JSON de auditoría conserva los documentos de antes y después.
+- **2FN.** El resultado semanal usa la combinación de semana e indicador.
+  El responsable se obtiene del indicador. La meta y peso guardados son los
+  efectivos de esa semana.
+- **3FN.** Cada comisión tiene una fuente. Se llega al vendedor por el pedido
+  de la línea o por el pedido del ajuste sin línea. Los importes, tasas y
+  estados históricos siguen en sus respectivos hechos.
+- **4FN.** Imágenes, atributos, componentes, evidencias y cobros permanecen
+  en relaciones con sus propias claves. Los totales se agregan por separado.
+- **5FN.** Las asignaciones persona, sede e intervalo representan una
+  autorización específica. Los componentes pertenecen a la línea que se
+  vendió. Deducir esas combinaciones cruzando listas independientes introduciría
+  datos que nunca se autorizaron ni se vendieron.
+
+Para aplicar en un entorno con datos, probar primero un respaldo restaurado
+de la base y de los archivos privados. Comparar ventas, cobros, saldos por
+SKU, comisiones por período, KPI y cierres. La conversión de tipos toma
+bloqueos exclusivos. Planificar una ventana, detener las escrituras y aplicar
+el código y las migraciones en conjunto. Para revertir los cambios de claves
+y de estructura, restaurar ese respaldo con la versión anterior del código.
+
+En combos anteriores a la migración, completar `order_item_components`
+solo con evidencia del pedido original. El backend pide esa verificación
+antes de afectar el inventario de un combo sin composición histórica.
+Cada semana nueva requiere su política y sus integrantes explícitos.
+Antes de publicar una nueva política, crear otro código y sus escalones
+para preservar las condiciones de semanas ya asignadas.
 
 ## Pruebas
 

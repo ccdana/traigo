@@ -190,10 +190,10 @@ class CreateSale
         // La base exige el mismo redondeo: por eso lo calcula ella.
         $base = Money::format($line['total_cents']);
         DB::insert(
-            'insert into commissions (id_commission, order_id, order_item_id, seller_id, base_bs, rate_pct, amount_bs, created_by)
-             values (?, ?, ?, ?, ?::numeric, ?::numeric, round(?::numeric * ?::numeric / 100, 2), ?)',
+            'insert into commissions (order_item_id, base_bs, rate_pct, amount_bs, created_by)
+             values (?, ?::numeric, ?::numeric, round(?::numeric * ?::numeric / 100, 2), ?)',
             [
-                (string) Str::uuid7(), $order->getKey(), $item->getKey(), $seller->getKey(), $base,
+                $item->getKey(), $base,
                 $product->commission_pct, $base, $product->commission_pct, $seller->getKey(),
             ],
         );

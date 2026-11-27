@@ -50,6 +50,28 @@ return new class extends Migration
         DB::statement('CREATE EXTENSION IF NOT EXISTS citext');
 
         foreach ($this->enumTypes as $type => $values) {
+            // migrate:fresh elimina tablas, pero PostgreSQL conserva los tipos.
+            $existing = DB::selectOne(<<<'SQL'
+                SELECT t.typtype AS kind,
+                       coalesce(
+                           json_agg(e.enumlabel::text ORDER BY e.enumsortorder) FILTER (WHERE e.oid IS NOT NULL),
+                           '[]'::json
+                       )::text AS labels
+                FROM pg_catalog.pg_type t
+                JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+                LEFT JOIN pg_catalog.pg_enum e ON e.enumtypid = t.oid
+                WHERE n.nspname = current_schema() AND t.typname = ?
+                GROUP BY t.oid, t.typtype
+                SQL, [$type]);
+
+            if ($existing !== null) {
+                if ($existing->kind !== 'e' || json_decode($existing->labels, true, flags: JSON_THROW_ON_ERROR) !== $values) {
+                    throw new RuntimeException("El tipo PostgreSQL {$type} ya existe con una definición distinta. Revise el esquema antes de migrar.");
+                }
+
+                continue;
+            }
+
             $labels = implode(', ', array_map(fn (string $value): string => "'{$value}'", $values));
 
             DB::statement("CREATE TYPE {$type} AS ENUM ({$labels})");

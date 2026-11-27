@@ -49,7 +49,7 @@ final class TeamHome
      */
     private static function monthCommission(User $seller): array
     {
-        $earned = DB::table('commissions')
+        $earned = DB::table('v_commission_sources')
             ->where('seller_id', $seller->getKey())
             ->where('status', 'earned')
             ->where('earned_at', '>=', now()->startOfMonth())

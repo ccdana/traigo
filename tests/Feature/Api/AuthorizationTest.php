@@ -193,7 +193,7 @@ class AuthorizationTest extends ControlTestCase
         $this->assertDatabaseHas('order_items', ['order_id' => $paid['order'], 'unit_price_bs' => 87]);
         $this->assertSame(
             ['-8.70', '8.70', '8.70'],
-            DB::table('commissions')->whereIn('order_id', [$paid['order'], $returned['order']])
+            DB::table('v_commission_sources')->whereIn('order_id', [$paid['order'], $returned['order']])
                 ->orderBy('amount_bs')->pluck('amount_bs')->all(),
         );
         $this->control('audit')->assertJsonPath(

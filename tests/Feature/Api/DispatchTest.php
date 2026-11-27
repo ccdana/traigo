@@ -43,7 +43,7 @@ class DispatchTest extends CampaignTestCase
         foreach ($products as $code => $quantity) {
             $product = $this->product((string) $code);
             DB::table('order_items')->insert([
-                'id_order_item' => (string) Str::uuid7(), 'order_id' => $id, 'product_id' => $product->getKey(), 'item_code' => $product->item_code,
+                'order_id' => $id, 'product_id' => $product->getKey(), 'item_code' => $product->item_code,
                 'product_name' => $product->name, 'unit_price_bs' => 10, 'quantity' => $quantity,
             ]);
             Stock::reserve($product->getKey(), $quantity);
@@ -52,7 +52,7 @@ class DispatchTest extends CampaignTestCase
         foreach ($combos as $comboId => $quantity) {
             $combo = DB::table('combos')->where('id_combo', $comboId)->first();
             DB::table('order_items')->insert([
-                'id_order_item' => (string) Str::uuid7(), 'order_id' => $id, 'combo_id' => $comboId, 'item_code' => $combo->item_code,
+                'order_id' => $id, 'combo_id' => $comboId, 'item_code' => $combo->item_code,
                 'product_name' => $combo->name, 'price_type' => 'combo', 'unit_price_bs' => $combo->price_bs,
                 'quantity' => $quantity,
             ]);
@@ -246,5 +246,21 @@ class DispatchTest extends CampaignTestCase
             $this->api($code)->getJson('/api/v1/warehouse/dispatches')->assertForbidden();
             $this->api($code)->postJson("/api/v1/warehouse/orders/{$order}/ready")->assertForbidden();
         }
+    }
+
+    #[Test]
+    public function el_despacho_conserva_la_composicion_del_combo_que_se_vendio(): void
+    {
+        $product = $this->product('8107');
+        $combo = $this->combo(['8107' => 2]);
+        $order = $this->webOrder(combos: [$combo => 1]);
+        DB::table('combo_items')->where('combo_id', $combo)->update(['quantity' => 3]);
+
+        $this->advance($order, 'ready')->assertNoContent();
+        $this->advance($order, 'delivered')->assertNoContent();
+
+        $this->assertDatabaseHas('stock_movements', [
+            'order_id' => $order, 'product_id' => $product->getKey(), 'quantity' => -2,
+        ]);
     }
 }

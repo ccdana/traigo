@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Exceptions\ApiException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Support\Collection;
@@ -14,10 +15,10 @@ use Illuminate\Support\Facades\DB;
 final class OrderUnits
 {
     /**
-     * @param  Collection<string, Collection<int, object>>|null  $components  por combo, si ya se cargaron
+     * @param  Collection<int, Collection<int, object>>|null  $components  por línea, si ya se cargaron
      * @return array<string, array{item_code: string, name: string, quantity: int}> por producto
      */
-    public static function of(Order $order, ?Collection $components = null): array
+    public static function of(Order $order, ?Collection $components = null, bool $requireComplete = true): array
     {
         $components ??= self::components($order->items);
         $units = [];
@@ -33,12 +34,20 @@ final class OrderUnits
                 continue;
             }
 
-            foreach ($components->get($item->combo_id, []) as $component) {
+            $snapshot = $components->get($item->getKey(), []);
+            if ($snapshot === [] && $requireComplete) {
+                throw ApiException::conflict(
+                    'missing_combo_history',
+                    'Hace falta verificar la composición histórica de este combo antes de mover su stock.',
+                );
+            }
+
+            foreach ($snapshot as $component) {
                 $add(
                     $component->product_id,
                     $component->item_code,
                     $component->name,
-                    $component->quantity * $item->quantity,
+                    $component->quantity_per_combo * $item->quantity,
                 );
             }
         }
@@ -52,17 +61,15 @@ final class OrderUnits
      */
     public static function components(Collection $items): Collection
     {
-        $combos = $items->pluck('combo_id')->filter()->unique();
-
-        if ($combos->isEmpty()) {
+        $lineIds = $items->whereNotNull('combo_id')->pluck('id_order_item')->all();
+        if ($lineIds === []) {
             return collect();
         }
 
-        return DB::table('combo_items as c')
-            ->join('products as p', 'p.id_product', '=', 'c.product_id')
-            ->whereIn('c.combo_id', $combos->values())
-            ->orderBy('p.name')
-            ->get(['c.combo_id', 'c.product_id', 'c.quantity', 'p.item_code', 'p.name'])
-            ->groupBy('combo_id');
+        return DB::table('order_item_components')
+            ->whereIn('order_item_id', $lineIds)
+            ->orderBy('name')
+            ->get()
+            ->groupBy('order_item_id');
     }
 }

@@ -44,7 +44,7 @@ class Dispatches
             'items_label' => SaleOrder::itemsLabel($order),
             'lines' => array_values(array_map(
                 fn (array $unit) => collect($unit)->only(['item_code', 'name', 'quantity'])->all(),
-                OrderUnits::of($order, $components),
+                OrderUnits::of($order, $components, requireComplete: false),
             )),
             'delivery_type' => $order->delivery_type,
             'status' => $order->status->value,

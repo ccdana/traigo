@@ -19,7 +19,7 @@ class ControlOrdersTest extends ControlTestCase
             'subtotal_bs' => 89, 'total_bs' => 89, 'created_at' => now()->subMinute(),
         ]);
         DB::table('order_items')->insert([
-            'id_order_item' => (string) Str::uuid7(), 'order_id' => $id, 'product_id' => $product->getKey(),
+            'order_id' => $id, 'product_id' => $product->getKey(),
             'item_code' => $product->item_code, 'product_name' => $product->name, 'unit_price_bs' => 89, 'quantity' => 1,
         ]);
         Stock::reserve($product->getKey(), 1);
@@ -90,10 +90,10 @@ class ControlOrdersTest extends ControlTestCase
             'order_id' => $proof['order'], 'type' => 'sale_return', 'quantity' => 2, 'note' => 'Llegó golpeado',
         ]);
         $this->assertDatabaseHas('payments', ['id_payment' => $proof['payment'], 'status' => 'reversed']);
-        $this->assertDatabaseHas('commissions', [
+        $this->assertDatabaseHas('v_commission_sources', [
             'order_id' => $proof['order'], 'kind' => 'sale', 'status' => 'earned', 'amount_bs' => '8.70',
         ]);
-        $this->assertDatabaseHas('commissions', [
+        $this->assertDatabaseHas('v_commission_sources', [
             'order_id' => $proof['order'], 'kind' => 'adjustment', 'status' => 'earned',
             'base_bs' => '-174.00', 'amount_bs' => '-8.70',
         ]);
@@ -116,8 +116,8 @@ class ControlOrdersTest extends ControlTestCase
 
         $this->assertSame(['stock' => 48, 'reserved' => 0], $this->inventory('8107'));
         $this->assertDatabaseHas('payments', ['order_id' => $order, 'status' => 'rejected']);
-        $this->assertDatabaseHas('commissions', ['order_id' => $order, 'status' => 'cancelled']);
-        $this->assertDatabaseMissing('commissions', ['order_id' => $order, 'kind' => 'adjustment']);
+        $this->assertDatabaseHas('v_commission_sources', ['order_id' => $order, 'status' => 'cancelled']);
+        $this->assertDatabaseMissing('v_commission_sources', ['order_id' => $order, 'kind' => 'adjustment']);
         $this->assertDatabaseMissing('stock_movements', ['order_id' => $order]);
     }
 
@@ -137,7 +137,7 @@ class ControlOrdersTest extends ControlTestCase
             'id_order' => $copy['order'], 'status' => 'cancelled', 'cancel_reason' => 'duplicate', 'duplicate_of_id' => $original,
         ]);
         $this->assertDatabaseHas('payments', ['order_id' => $copy['order'], 'status' => 'rejected']);
-        $this->assertDatabaseHas('commissions', ['order_id' => $copy['order'], 'status' => 'cancelled']);
+        $this->assertDatabaseHas('v_commission_sources', ['order_id' => $copy['order'], 'status' => 'cancelled']);
         $this->control("orders/{$copy['order']}")
             ->assertJsonPath('data.duplicate_of_number', $number)
             ->assertJsonPath('data.can_mark_duplicate', false);

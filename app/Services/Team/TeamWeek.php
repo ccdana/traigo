@@ -49,7 +49,7 @@ final class TeamWeek
                    round(w.base_prize_bs * t.release_factor, 2) as fund,
                    round(round(w.base_prize_bs * t.release_factor, 2) * ?::numeric / 100, 2) as my_share
             from bonus_tiers t
-            cross join bonus_weeks w
+            join bonus_weeks w ON w.policy_id = t.policy_id
             where w.id_bonus_week = ?
             order by t.threshold_pct
             SQL, [$sharePct, $week->getKey()]);

@@ -271,8 +271,9 @@ final class AuditHistory
 
         // Las ventas sin % que lo tomaron al aprobar (en el mismo paso).
         $filled = (int) DB::selectOne(
-            "select count(distinct c.new_values->>'order_id') as total
+            "select count(distinct coalesce(c.new_values->>'order_id', c.new_values->>'order_adjustment_id', i.order_id::text)) as total
              from audit_logs a join audit_logs c on c.created_at = a.created_at and c.xmin = a.xmin
+             left join order_items i on i.id_order_item::text = c.new_values->>'order_item_id'
              where a.id_audit_log = ? and c.entity_type = 'commissions' and c.action = 'update'
                and c.old_values->>'rate_pct' is null and c.new_values->>'rate_pct' is not null",
             [$log->id_audit_log],
@@ -351,7 +352,7 @@ final class AuditHistory
     private function indicator(string $resultId): string
     {
         return $this->remember("r:{$resultId}", function () use ($resultId) {
-            $row = DB::table('kpi_weekly_results as r')
+            $row = DB::table('v_kpi_results as r')
                 ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
                 ->join('users as u', 'u.id_user', '=', 'r.user_id')
                 ->where('r.id_kpi_weekly_result', $resultId)

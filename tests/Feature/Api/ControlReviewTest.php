@@ -106,8 +106,8 @@ class ControlReviewTest extends ControlTestCase
 
         $payment = DB::table('payments')->where('id_payment', $proof['payment'])->first();
         $this->assertSame($submitted, $payment->received_at);
-        $this->assertSame($submitted, DB::table('commissions')->where('order_id', $proof['order'])->value('earned_at'));
-        $this->assertDatabaseHas('commissions', ['order_id' => $proof['order'], 'status' => 'earned']);
+        $this->assertSame($submitted, DB::table('v_commission_sources')->where('order_id', $proof['order'])->value('earned_at'));
+        $this->assertDatabaseHas('v_commission_sources', ['order_id' => $proof['order'], 'status' => 'earned']);
         $this->api('ALI-04')->getJson("/api/v1/orders/{$proof['order']}")
             ->assertJsonPath('data.status', 'paid')
             ->assertJsonPath('data.timeline.1.at', now()->toIso8601String());
@@ -184,7 +184,7 @@ class ControlReviewTest extends ControlTestCase
         $this->act("cash-closings/{$closing}/validate")->assertConflict()->assertJsonPath('code', 'already_reviewed');
 
         $this->assertDatabaseHas('payments', ['order_id' => $order, 'status' => 'confirmed']);
-        $this->assertDatabaseHas('commissions', ['order_id' => $order, 'status' => 'earned']);
+        $this->assertDatabaseHas('v_commission_sources', ['order_id' => $order, 'status' => 'earned']);
         // El QR se revisa aparte y el efectivo que llegó tarde va en otro cierre.
         $this->assertDatabaseHas('payments', ['id_payment' => $proof['payment'], 'status' => 'submitted']);
         $this->assertDatabaseHas('payments', ['order_id' => $late, 'status' => 'submitted']);

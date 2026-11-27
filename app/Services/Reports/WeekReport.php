@@ -8,6 +8,7 @@ use App\Models\SystemDeliverable;
 use App\Services\Control\Compliance;
 use App\Services\Control\WeekBonusData;
 use App\Services\Control\WeeklyClosings;
+use App\Services\Team\WeekLock;
 use App\Support\Numbers;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +34,10 @@ final class WeekReport
     public static function of(BonusWeek $week): Workbook
     {
         $bonus = WeekBonusData::of($week);
-        $compliance = Compliance::members($week)->keyBy('user_id');
+        $frozen = in_array($bonus->status, WeekLock::FROZEN, true);
+        $compliance = $frozen
+            ? DB::table('weekly_member_results')->where('week_id', $week->getKey())->get()->keyBy('user_id')
+            : Compliance::members($week)->keyBy('user_id');
 
         $book = (new Workbook)
             ->sheet('Cierre', [['Concepto', 28], ['Detalle', 60]], self::closing($week, $bonus))
@@ -48,7 +52,9 @@ final class WeekReport
                 $member['name'],
                 (float) $member['share_pct'],
                 (float) $compliance->get($member['user_id'])?->min_kpi_pct,
-                Numbers::floorPercent($compliance->get($member['user_id'])?->partial_score_pct),
+                $frozen && $compliance->get($member['user_id'])?->score_pct === null
+                    ? null
+                    : Numbers::floorPercent($frozen ? $compliance->get($member['user_id'])->score_pct : $compliance->get($member['user_id'])?->partial_score_pct),
                 self::RESULTS[$member['result']],
                 Workbook::money($member['share']),
                 Workbook::money($member['amount']),
@@ -113,10 +119,10 @@ final class WeekReport
 
     private static function indicators(BonusWeek $week): iterable
     {
-        return DB::table('kpi_weekly_results as r')
+        return DB::table('v_kpi_results as r')
             ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
             ->join('users as u', 'u.id_user', '=', 'r.user_id')
-            ->join('team_profiles as p', 'p.user_id', '=', 'r.user_id')
+            ->leftJoin('team_profiles as p', 'p.user_id', '=', 'r.user_id')
             ->where('r.week_id', $week->getKey())
             ->orderBy('p.sort_order')
             ->orderBy('i.sort_order')

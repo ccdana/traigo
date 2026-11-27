@@ -9,7 +9,6 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Comisiones por mes. Una comisión cuenta en el mes en que llegó el dinero; si
@@ -20,11 +19,19 @@ class Commissions
 {
     private const SENT = ['sent', 'authorized', 'paid'];
 
+    public static function forOrder(string $orderId): Builder
+    {
+        return DB::table('commissions')->where(function (Builder $sources) use ($orderId) {
+            $sources->where('order_adjustment_id', $orderId)
+                ->orWhereIn('order_item_id', DB::table('order_items')
+                    ->where('order_id', $orderId)->select('id_order_item'));
+        });
+    }
+
     /** Al confirmar el cobro: las de ese pedido se ganan. */
     public static function earn(string $orderId, Carbon $received): void
     {
-        DB::table('commissions')
-            ->where('order_id', $orderId)
+        self::forOrder($orderId)
             ->where('status', 'pending')
             ->update(['status' => 'earned', 'earned_at' => $received, 'updated_at' => now()]);
     }
@@ -35,17 +42,17 @@ class Commissions
      */
     public static function reverse(string $orderId, User $by, string $reason): void
     {
-        $sales = DB::table('commissions')->where('order_id', $orderId)->where('kind', 'sale')->get();
+        $sales = self::forOrder($orderId)->where('kind', 'sale')->get();
 
         foreach ($sales->where('status', 'earned') as $sale) {
             // La base exige el mismo redondeo: por eso lo calcula ella.
             DB::insert(<<<'SQL'
                 insert into commissions
-                    (id_commission, order_id, order_item_id, seller_id, kind, status, base_bs, rate_pct, amount_bs, earned_at, note, created_by)
-                select ?, order_id, order_item_id, seller_id, 'adjustment', 'earned', -base_bs, rate_pct,
+                    (order_adjustment_id, order_item_id, kind, status, base_bs, rate_pct, amount_bs, earned_at, note, created_by)
+                select order_adjustment_id, order_item_id, 'adjustment', 'earned', -base_bs, rate_pct,
                        round(-base_bs * rate_pct / 100, 2), ?, ?, ?
                 from commissions where id_commission = ?
-                SQL, [(string) Str::uuid7(), now(), $reason, $by->getKey(), $sale->id_commission]);
+                SQL, [now(), $reason, $by->getKey(), $sale->id_commission]);
         }
 
         self::cancelPending($orderId);
@@ -53,8 +60,7 @@ class Commissions
 
     public static function cancelPending(string $orderId): void
     {
-        DB::table('commissions')
-            ->where('order_id', $orderId)
+        self::forOrder($orderId)
             ->where('status', 'pending')
             ->update(['status' => 'cancelled', 'updated_at' => now()]);
     }
@@ -66,9 +72,12 @@ class Commissions
         $settlement = DB::table('commission_settlements')->where('period', $period->toDateString())->first();
         $status = $settlement->status ?? 'open';
 
-        $rows = self::rows($period, $settlement)->get(['c.seller_id', 'c.order_id', 'c.kind', 'c.amount_bs']);
+        $rows = self::rows($period, $settlement)
+            ->join('v_commission_sources as source', 'source.id_commission', '=', 'c.id_commission')
+            ->get(['source.seller_id', 'source.order_id', 'c.kind', 'c.amount_bs']);
 
-        $members = self::sellers()->map(fn (object $seller) => self::row($seller, $rows->where('seller_id', $seller->id_user)));
+        $members = self::sellers($rows->pluck('seller_id')->unique())
+            ->map(fn (object $seller) => self::row($seller, $rows->where('seller_id', $seller->id_user)));
         $ratesPending = $rows->contains(fn (object $row) => $row->amount_bs === null);
 
         return [
@@ -89,8 +98,9 @@ class Commissions
         $settlement = DB::table('commission_settlements')->where('period', $period->toDateString())->first();
 
         return self::rows($period, $settlement)
-            ->join('orders as o', 'o.id_order', '=', 'c.order_id')
-            ->join('users as u', 'u.id_user', '=', 'c.seller_id')
+            ->join('v_commission_sources as source', 'source.id_commission', '=', 'c.id_commission')
+            ->join('orders as o', 'o.id_order', '=', 'source.order_id')
+            ->join('users as u', 'u.id_user', '=', 'source.seller_id')
             ->leftJoin('order_items as i', 'i.id_order_item', '=', 'c.order_item_id')
             ->orderBy('u.name')
             ->orderBy('c.earned_at')
@@ -152,14 +162,14 @@ class Commissions
                 'return_reason' => null,
                 'updated_at' => now(),
             ];
-            $id = $settlement?->id_commission_settlement ?? (string) Str::uuid7();
-
             if ($settlement) {
+                $id = $settlement->id_commission_settlement;
                 DB::table('commission_settlements')->where('id_commission_settlement', $id)->update($values);
             } else {
-                DB::table('commission_settlements')->insert([
-                    'id_commission_settlement' => $id, 'period' => $period->toDateString(), ...$values,
-                ]);
+                $id = DB::table('commission_settlements')->insertGetId(
+                    ['period' => $period->toDateString(), ...$values],
+                    'id_commission_settlement',
+                );
             }
 
             $ids = $rows->pluck('id_commission')->all();
@@ -196,7 +206,7 @@ class Commissions
     }
 
     /** Lo que entra en la liquidación abierta (o devuelta) de ese mes. */
-    private static function open(Carbon $period, ?string $settlementId): Builder
+    private static function open(Carbon $period, ?int $settlementId): Builder
     {
         $month = "date_trunc('month', c.earned_at at time zone 'America/La_Paz')::date";
         $day = $period->toDateString();
@@ -224,12 +234,15 @@ class Commissions
     }
 
     /** Quienes venden, en el orden de la app. */
-    private static function sellers(): Collection
+    private static function sellers(Collection $recipients): Collection
     {
         return DB::table('users as u')
-            ->join('team_profiles as p', 'p.user_id', '=', 'u.id_user')
-            ->whereIn('u.role', ['seller', 'wholesale'])
+            ->leftJoin('team_profiles as p', 'p.user_id', '=', 'u.id_user')
+            ->where(fn (Builder $query) => $query
+                ->where(fn (Builder $active) => $active->whereIn('u.role', ['seller', 'wholesale'])->whereNotNull('p.user_id'))
+                ->orWhereIn('u.id_user', $recipients))
             ->orderBy('p.sort_order')
+            ->orderBy('u.id_user')
             ->get(['u.id_user', 'u.name']);
     }
 

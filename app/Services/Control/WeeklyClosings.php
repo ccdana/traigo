@@ -220,9 +220,9 @@ class WeeklyClosings
     private static function evidenceCheck(BonusWeek $week): array
     {
         $waiting = DB::table('kpi_evidence as e')
-            ->join('kpi_weekly_results as r', 'r.id_kpi_weekly_result', '=', 'e.kpi_weekly_result_id')
+            ->join('v_kpi_results as r', 'r.id_kpi_weekly_result', '=', 'e.kpi_weekly_result_id')
             ->join('users as u', 'u.id_user', '=', 'r.user_id')
-            ->join('team_profiles as p', 'p.user_id', '=', 'r.user_id')
+            ->leftJoin('team_profiles as p', 'p.user_id', '=', 'r.user_id')
             ->where('r.week_id', $week->getKey())
             ->where('e.status', 'in_review')
             ->orderBy('p.sort_order')

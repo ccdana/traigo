@@ -60,7 +60,7 @@ class OrdersTest extends SalesTestCase
         $this->assertStringStartsWith('N-', $response->json('data.number'));
         $this->assertSame(['stock' => 48, 'reserved' => 2], $this->inventory('8107'));
         $this->assertSame($alison->getKey(), $order->seller_id);
-        $this->assertDatabaseHas('commissions', [
+        $this->assertDatabaseHas('v_commission_sources', [
             'order_id' => $order->getKey(), 'seller_id' => $alison->getKey(),
             'base_bs' => '174.00', 'rate_pct' => null, 'status' => 'pending',
         ]);
@@ -269,7 +269,7 @@ class OrdersTest extends SalesTestCase
 
         $this->assertSame(['stock' => 48, 'reserved' => 0], $this->inventory('8107'));
         $this->assertDatabaseHas('orders', ['id_order' => $id, 'cancel_reason' => 'Se arrepintió']);
-        $this->assertDatabaseHas('commissions', ['order_id' => $id, 'status' => 'cancelled']);
+        $this->assertDatabaseHas('v_commission_sources', ['order_id' => $id, 'status' => 'cancelled']);
 
         // El historial guarda quién lo canceló.
         $entry = \DB::table('audit_logs')->where('entity_type', 'orders')->where('entity_id', $id)->latest('id_audit_log')->first();

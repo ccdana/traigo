@@ -3,19 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** La copia de lo vendido, con los precios y la comisión de ese momento. */
 #[Fillable([
-    'order_id', 'product_id', 'item_code', 'product_name', 'price_type', 'unit_price_bs',
+    'order_id', 'product_id', 'combo_id', 'item_code', 'product_name', 'price_type', 'unit_price_bs',
     'unit_cost_bs', 'commission_rate_pct', 'quantity', 'promotion_id', 'list_price_bs',
 ])]
 class OrderItem extends Model
 {
-    use HasUuids;
-
     protected $primaryKey = 'id_order_item';
 
     public $timestamps = false;

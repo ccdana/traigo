@@ -20,7 +20,7 @@ final class Compliance
     {
         return DB::table('v_member_week_compliance as c')
             ->join('users as u', 'u.id_user', '=', 'c.user_id')
-            ->join('team_profiles as p', 'p.user_id', '=', 'c.user_id')
+            ->leftJoin('team_profiles as p', 'p.user_id', '=', 'c.user_id')
             ->leftJoin('v_deliverables_member as d', function ($join) {
                 $join->on('d.week_id', '=', 'c.week_id')->on('d.user_id', '=', 'c.user_id');
             })

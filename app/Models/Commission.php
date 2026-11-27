@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 /** Una por línea vendida; sin % definido, el monto queda nulo. */
 class Commission extends Model
 {
-    use HasUuids;
+    protected $table = 'v_commission_sources';
 
     protected $primaryKey = 'id_commission';
 

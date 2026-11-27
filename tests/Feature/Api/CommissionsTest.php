@@ -68,7 +68,7 @@ class CommissionsTest extends ControlTestCase
 
         $this->setRate('8107', null);
         $pending = $this->paidSale('KIM-05');
-        DB::table('commissions')->where('order_id', $pending['order'])->update(['earned_at' => '2026-12-20 10:00:00']);
+        \App\Services\Control\Commissions::forOrder($pending['order'])->update(['earned_at' => '2026-12-20 10:00:00']);
         $this->month('2026-12')
             ->assertJsonPath('data.rates_pending', true)
             ->assertJsonPath('data.total', null)

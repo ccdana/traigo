@@ -49,7 +49,7 @@ abstract class CampaignTestCase extends SalesTestCase
         return DB::table('kpi_weekly_results as r')
             ->join('kpi_indicators as i', 'i.id_kpi_indicator', '=', 'r.indicator_id')
             ->where('r.week_id', $this->week($week)->getKey())
-            ->where('r.user_id', $this->member($code)->getKey())
+            ->where('i.user_id', $this->member($code)->getKey())
             ->where('i.name', $indicator)
             ->value('r.id_kpi_weekly_result');
     }
@@ -59,7 +59,7 @@ abstract class CampaignTestCase extends SalesTestCase
     {
         DB::update(
             'update kpi_weekly_results set actual = round(target * ?::numeric, 2), loaded_by = ?, loaded_at = now()
-             where week_id = ? and user_id = ?',
+             where week_id = ? and indicator_id in (select id_kpi_indicator from kpi_indicators where user_id = ?)',
             [$factor, $this->member('JIM-01')->getKey(), $this->week($week)->getKey(), $this->member($code)->getKey()],
         );
     }
@@ -76,7 +76,7 @@ abstract class CampaignTestCase extends SalesTestCase
             'received_at' => now(),
         ]);
         DB::table('orders')->where('id_order', $orderId)->update(['status' => 'paid', 'paid_at' => now()]);
-        DB::table('commissions')->where('order_id', $orderId)->update(['status' => 'earned', 'earned_at' => now()]);
+        \App\Services\Control\Commissions::forOrder($orderId)->update(['status' => 'earned', 'earned_at' => now()]);
     }
 
     /** Jime cierra a mano a quien sigue pendiente. */

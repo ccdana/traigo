@@ -7,6 +7,7 @@ use App\Enums\PaymentStatus;
 use App\Exceptions\ApiException;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Control\Commissions;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,16 +25,13 @@ class CancelSale
                 throw ApiException::conflict('not_cancellable', 'Este pedido ya no se puede cancelar.');
             }
 
-            $items = $order->items()->get(['product_id', 'quantity']);
-            Stock::lock($items->pluck('product_id')->all());
-            foreach ($items as $item) {
-                Stock::reserve($item->product_id, -$item->quantity);
+            $units = OrderUnits::of($order);
+            Stock::lock(array_keys($units));
+            foreach ($units as $productId => $unit) {
+                Stock::reserve($productId, -$unit['quantity']);
             }
 
-            $order->commissions()->where('status', 'pending')->update([
-                'status' => 'cancelled',
-                'updated_at' => now(),
-            ]);
+            Commissions::cancelPending($orderId);
             $order->payments()->where('status', PaymentStatus::Submitted->value)->get()
                 ->each->update(['status' => PaymentStatus::Rejected, 'reject_reason' => 'Pedido cancelado']);
 
