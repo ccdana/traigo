@@ -143,11 +143,16 @@ final class AuditHistory
             'weekly_member_results' => $this->memberResult($log->action, $new),
             'commission_settlements' => $this->settlement($new),
             'price_change_requests' => $this->priceChange($log, $new),
-            'products' => $this->product($new, $old),
+            'products' => $log->action === 'product_created'
+                ? "Creó el producto {$new['name']}"
+                : $this->product($new, $old),
             'users' => $this->account($log, $new),
-            'promotions' => $log->action === 'promotion_approved'
-                ? "Autorizó la promoción «{$new['name']}»"
-                : "No aprobó la promoción «{$new['name']}»: {$new['note']}",
+            'promotions' => match ($log->action) {
+                'promotion_created' => "Creó la promoción «{$new['name']}»",
+                'promotion_withdrawn' => "Retiró la promoción «{$new['name']}»",
+                'promotion_approved' => "Autorizó la promoción «{$new['name']}»",
+                default => "No aprobó la promoción «{$new['name']}»: {$new['note']}",
+            },
             'settings' => "Cambió la configuración «{$log->entity_id}»",
             default => 'Cambió '.(self::TABLES[$log->entity_type] ?? $log->entity_type),
         };

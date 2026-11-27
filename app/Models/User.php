@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Mail\CustomerPasswordResetMail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -38,6 +40,22 @@ class User extends Authenticatable
             'failed_login_attempts' => 'integer',
             'password' => 'hashed',
         ];
+    }
+
+    /** Un cliente de la tienda con la cuenta activa. */
+    public function isActiveCustomer(): bool
+    {
+        return $this->is_active && $this->role === UserRole::Customer;
+    }
+
+    /** Solo los clientes tienen contraseña: el correo va en español y a la tienda. */
+    public function sendPasswordResetNotification($token): void
+    {
+        Mail::to($this->email)->send(new CustomerPasswordResetMail(
+            $this->name,
+            route('store.password.reset', ['token' => $token, 'email' => $this->email]),
+            (int) config('auth.passwords.users.expire'),
+        ));
     }
 
     /** Del equipo y con la cuenta activa: lo único que puede usar la API. */

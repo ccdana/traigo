@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use App\Support\PrivateFiles;
+use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,33 @@ class SubmitProof
         ?string $reference,
         string $clientUuid,
     ): Order {
+        return $this->attach(
+            fn (): Order => OwnOrders::lock($seller, $orderId),
+            $seller,
+            $file,
+            $reference,
+            $clientUuid,
+        );
+    }
+
+    /**
+     * @param  Closure(): Order  $lock  carga y bloquea el pedido de quien envía,
+     *                                  y falla si no le corresponde
+     * @param  User|null  $by  quién lo sube; nulo si es el cliente de la tienda
+     */
+    public function attach(
+        Closure $lock,
+        ?User $by,
+        UploadedFile $file,
+        ?string $reference,
+        string $clientUuid,
+    ): Order {
         $reference = filled($reference) ? trim($reference) : null;
         $stored = null;
 
         try {
-            return DB::transaction(function () use ($seller, $orderId, $file, $reference, $clientUuid, &$stored): Order {
-                $order = OwnOrders::lock($seller, $orderId);
+            return DB::transaction(function () use ($lock, $by, $file, $reference, $clientUuid, &$stored): Order {
+                $order = $lock();
 
                 // El mismo envío repetido (si se perdió la respuesta guardada).
                 if ($order->payments()->where('client_uuid', $clientUuid)->exists()) {
@@ -58,7 +80,7 @@ class SubmitProof
                     'reference' => $reference,
                     'proof_public_id' => $stored,
                     'proof_url' => $stored,
-                    'submitted_by' => $seller->getKey(),
+                    'submitted_by' => $by?->getKey(),
                     'submitted_at' => now(),
                     'reject_reason' => null,
                     'client_uuid' => $clientUuid,
@@ -67,7 +89,7 @@ class SubmitProof
                 if ($order->status !== OrderStatus::PaymentReview) {
                     $from = $order->status;
                     $order->update(['status' => OrderStatus::PaymentReview]);
-                    $order->recordStatus($from, $seller);
+                    $order->recordStatus($from, $by);
                 }
 
                 return $order;

@@ -6,6 +6,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -26,6 +27,14 @@ class ApiErrors
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (ApiException $e, Request $request): ?RedirectResponse {
+            if ($request->is('api/*') || $request->isMethodSafe() || ! in_array($e->status, [409, 422, 502], true)) {
+                return null;
+            }
+
+            return back()->withInput()->withErrors(['form' => $e->getMessage()]);
+        });
 
         $exceptions->render(function (Throwable $e, Request $request): ?JsonResponse {
             if (! $request->is('api/*')) {

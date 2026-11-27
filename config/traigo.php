@@ -34,6 +34,30 @@ return [
     // Peticiones por minuto de una sesión.
     'api_requests_per_minute' => 120,
 
+    // En el panel web, con estas unidades disponibles o menos el stock es «bajo».
+    'low_stock_threshold' => 5,
+
+    // Pedidos de la tienda web.
+    'web' => [
+        // Pedidos sin confirmar que puede tener a la vez una cuenta o un WhatsApp.
+        'max_open_orders' => 3,
+        // Por si falta la configuración `order_reservation_hours`.
+        'default_reservation_hours' => 2,
+        // Ingresos por minuto: para un correo desde una IP, y desde una IP.
+        'logins_per_minute' => 5,
+        'logins_per_minute_by_ip' => 20,
+        // Cuentas nuevas desde una IP y enlaces para recuperar la contraseña.
+        'registrations_per_hour' => 10,
+        'password_links_per_minute' => 3,
+        // Intentos por minuto de guardar una contraseña nueva.
+        'password_changes_per_minute' => 6,
+        // Envíos por minuto y pedidos por hora desde una misma IP.
+        'checkouts_per_minute' => 5,
+        'checkouts_per_hour' => 20,
+        'proofs_per_minute' => 6,
+        'quotes_per_minute' => 3,
+    ],
+
     // La cuenta de Traigo que Jime compara con cada comprobante.
     'payment_account' => 'Traigo',
 

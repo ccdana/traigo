@@ -45,7 +45,12 @@ class UserFactory extends Factory
             'role' => UserRole::Customer,
             'code' => null,
             'pin_hash' => null,
+            'title' => null,
+            'lastname' => fake()->lastName(),
+            'phone' => fake()->unique()->numerify('7#######'),
             'email' => fake()->unique()->safeEmail(),
+            // Solo para pruebas; el modelo la guarda cifrada.
+            'password' => 'clave-de-prueba',
         ]);
     }
 }

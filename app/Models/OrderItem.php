@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** La copia de lo vendido, con los precios y la comisión de ese momento. */
 #[Fillable([
     'order_id', 'product_id', 'item_code', 'product_name', 'price_type', 'unit_price_bs',
-    'unit_cost_bs', 'commission_rate_pct', 'quantity',
+    'unit_cost_bs', 'commission_rate_pct', 'quantity', 'promotion_id', 'list_price_bs',
 ])]
 class OrderItem extends Model
 {

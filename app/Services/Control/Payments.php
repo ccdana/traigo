@@ -10,6 +10,7 @@ use App\Http\Resources\SaleOrder;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Store\StoreSettings;
 use App\Services\Team\WeekLock;
 use App\Support\Dates;
 use App\Support\FileLinks;
@@ -120,7 +121,14 @@ class Payments
             ])->save();
 
             $from = $order->status;
-            $order->update(['status' => OrderStatus::PendingPayment]);
+            $order->update([
+                'status' => OrderStatus::PendingPayment,
+                // Un pedido de la tienda recibe otro plazo para corregirlo; sin
+                // esto vencería en el acto.
+                ...($order->origin === 'web'
+                    ? ['expires_at' => now()->addHours(app(StoreSettings::class)->reservationHours())]
+                    : []),
+            ]);
             $order->recordStatus($from, $jime, $reason);
         });
     }

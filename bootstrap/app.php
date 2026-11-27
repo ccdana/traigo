@@ -2,9 +2,11 @@
 
 use App\Exceptions\ApiErrors;
 use App\Http\Middleware\EnsureActiveStaff;
+use App\Http\Middleware\EnsureCustomer;
 use App\Http\Middleware\EnsureIdempotency;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureTeamMember;
+use App\Http\Middleware\EnsureWebStaff;
 use App\Http\Middleware\SetDatabaseActor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,10 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'member' => EnsureTeamMember::class,
             'actor' => SetDatabaseActor::class,
             'idempotent' => EnsureIdempotency::class,
+            'staff.web' => EnsureWebStaff::class,
+            'customer.account' => EnsureCustomer::class,
         ]);
 
-        // La API responde 401; no hay un formulario de ingreso al que enviar.
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+        // La API responde 401. En la web, el panel lleva a su ingreso y lo
+        // demás (comprar y ver pedidos) al de clientes.
+        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
+            $request->is('api/*') => null,
+            $request->is('equipo', 'equipo/*') => route('staff.login'),
+            default => route('store.login'),
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         ApiErrors::register($exceptions);

@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Los clientes de la tienda, aparte del panel del equipo (`web`): una
+        // sesión nunca sirve para la otra.
+        'customer' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
     ],
 
     /*
