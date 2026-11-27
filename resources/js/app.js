@@ -53,21 +53,49 @@ function gallery(element) {
 function delivery(element) {
     const address = element.querySelector('[data-delivery-address]');
     const radios = element.querySelectorAll('input[name="delivery_type"]');
+    const mapRoot = element.querySelector('[data-delivery-map]');
+    let refreshMap;
+    let loading = false;
 
     const update = () => {
         const isDelivery = element.querySelector('input[name="delivery_type"]:checked')?.value === 'delivery';
         address.hidden = !isDelivery;
-        address.querySelector('input').required = isDelivery;
+        address.querySelector('[name="address"]').required = isDelivery;
+        address.querySelectorAll('input, button').forEach((input) => { input.disabled = !isDelivery; });
+        if (isDelivery && mapRoot) {
+            if (refreshMap) requestAnimationFrame(refreshMap);
+            else if (!loading) {
+                loading = true;
+                import('./delivery-map.js').then(({ deliveryMap }) => {
+                    refreshMap = deliveryMap(mapRoot);
+                    requestAnimationFrame(refreshMap);
+                }).catch(() => {
+                    mapRoot.querySelector('[data-map-status]').textContent = 'No se pudo cargar el mapa. Recarga la página o ingresa las coordenadas.';
+                    mapRoot.querySelector('[data-map-coordinates]').open = true;
+                    loading = false;
+                });
+            }
+        }
     };
 
     radios.forEach((radio) => radio.addEventListener('change', update));
     update();
+    element.closest('form').addEventListener('submit', (event) => {
+        if (address.hidden || !mapRoot) return;
+        const missing = ['latitude', 'longitude'].some((name) => !mapRoot.querySelector(`[name="${name}"]`).value);
+        if (missing) {
+            event.preventDefault();
+            mapRoot.querySelector('[data-map-status]').textContent = 'Marca el punto de entrega antes de confirmar el pedido.';
+            mapRoot.scrollIntoView({ block: 'center', behavior: 'auto' });
+        }
+    });
 }
 
 // Evita el doble clic en envíos que apartan stock o suben archivos. El
 // servidor igual no los duplica.
 function once(form) {
-    form.addEventListener('submit', () => {
+    form.addEventListener('submit', (event) => {
+        if (event.defaultPrevented) return;
         const button = form.querySelector('button[type="submit"]');
         setTimeout(() => (button.disabled = true));
     });

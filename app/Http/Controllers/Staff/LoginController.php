@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Auth\PinLogin;
 use App\Services\Auth\TwoFactor;
+use App\Support\WebAdminAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class LoginController extends Controller
 
     public function create(): View|RedirectResponse
     {
-        return Auth::check() ? to_route('staff.inventory.index') : view('staff.login');
+        return WebAdminAccess::allows(Auth::guard('web')->user()) ? to_route('staff.dashboard') : view('staff.login');
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,8 +42,8 @@ class LoginController extends Controller
         try {
             $user = $this->pinLogin->check($data['code'], $data['pin']);
 
-            if (! $user->role->canUseInventoryPanel()) {
-                return $this->failed($request, 'El panel web es para almacén, Jime y Dirección. Tu trabajo está en la app Traigo Equipo.');
+            if (! WebAdminAccess::allows($user)) {
+                return $this->failed($request, 'El panel web está habilitado solo para Dirección.');
             }
 
             if (! $user->role->requiresSecondStep()) {
@@ -101,11 +102,12 @@ class LoginController extends Controller
 
     private function signIn(Request $request, User $user): RedirectResponse
     {
+        abort_unless(WebAdminAccess::allows($user), 403);
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
         $user->update(['last_login_at' => now()]);
 
-        return redirect()->intended(route('staff.inventory.index'));
+        return redirect()->intended(route('staff.dashboard'));
     }
 
     private function failed(Request $request, string $message): RedirectResponse

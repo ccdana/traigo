@@ -52,6 +52,40 @@ npm run build
 La tienda requiere que Dirección cargue el QR de pago en el panel y que haya
 stock disponible para recibir pedidos.
 
+### Tienda y administración web
+
+La web admite clientes y Dirección. El cliente entra por `/ingresar` y usa
+`/carrito`; Dirección entra por `/equipo/ingresar` con su código, PIN y segundo
+factor. Los demás roles conservan sus accesos y operaciones en la API móvil.
+El enlace anterior `/bolsa` redirige al carrito.
+
+En `/equipo/estadisticas`, Dirección consulta cobros confirmados, pedidos,
+unidades entregadas y productos más vendidos, con filtros de fechas y canal.
+El inventario compartido y los pendientes muestran su situación actual.
+Los accesos a inventario y ofertas mantienen los permisos existentes:
+Dirección consulta stock y autoriza o retira ofertas; los movimientos de
+almacén y las propuestas siguen realizándose desde la app con sus roles.
+
+Al elegir delivery, el cliente escribe su dirección y selecciona un punto
+en el mapa, mediante búsqueda, clic o ubicación del dispositivo. Puede mover
+el marcador y añadir una referencia. El pedido guarda las coordenadas en
+`order_delivery_locations`, dentro de la misma transacción. También incorpora
+un enlace al mapa en `shipping_address`, que la app ya recibe. No cambia el
+contrato de su API. En la web, las coordenadas solo se muestran al dueño del
+pedido y a Dirección; la app conserva sus permisos de consulta de pedidos.
+Los pedidos anteriores sin ubicación siguen siendo consultables.
+
+Después de actualizar, ejecuta `php artisan migrate` y `npm run build`.
+El mapa usa Leaflet y teselas de OpenStreetMap; la búsqueda explícita usa
+Photon, con caché y límites. Requieren conexión a internet. La ubicación del
+dispositivo solo se solicita al pulsar el botón y requiere HTTPS (o localhost).
+Si un proveedor falla, se puede introducir el punto mediante coordenadas.
+`config/delivery-map.php` permite sustituir los proveedores con
+`DELIVERY_MAP_TILES_URL`, `DELIVERY_MAP_ATTRIBUTION`,
+`DELIVERY_MAP_ATTRIBUTION_URL` y `DELIVERY_MAP_SEARCH_URL`.
+Antes de escalar tráfico, configura proveedores con capacidad adecuada o
+una instancia propia de Photon; el servicio público no garantiza disponibilidad.
+
 Para entrar con el PIN `1234`, como en la demo de la app (solo con
 `APP_ENV=local`). También pone un correo de prueba a Jime y Dirección:
 

@@ -22,6 +22,9 @@ class CheckoutRequest extends FormRequest
         return [
             'delivery_type' => ['required', Rule::in(['pickup', 'delivery'])],
             'address' => ['nullable', 'required_if:delivery_type,delivery', 'string', 'max:300'],
+            'latitude' => ['exclude_unless:delivery_type,delivery', 'required', 'numeric', 'between:-90,90'],
+            'longitude' => ['exclude_unless:delivery_type,delivery', 'required', 'numeric', 'between:-180,180'],
+            'reference' => ['exclude_unless:delivery_type,delivery', 'nullable', 'string', 'max:300'],
             // El total que la persona vio: si el precio cambió, se le avisa.
             'expected_total' => ['required', 'string', 'regex:'.Money::PATTERN],
             'client_uuid' => ['required', 'uuid'],
@@ -33,6 +36,9 @@ class CheckoutRequest extends FormRequest
         return [
             'delivery_type' => 'la forma de entrega',
             'address' => 'la dirección de entrega',
+            'latitude' => 'la latitud del punto de entrega',
+            'longitude' => 'la longitud del punto de entrega',
+            'reference' => 'la referencia de entrega',
         ];
     }
 
@@ -40,15 +46,20 @@ class CheckoutRequest extends FormRequest
     {
         return [
             'address.required_if' => 'Escribe la dirección para el delivery.',
+            'latitude.required' => 'Marca el punto de entrega en el mapa.',
+            'longitude.required' => 'Marca el punto de entrega en el mapa.',
         ];
     }
 
-    /** @return array{delivery_type: string, address: ?string} */
+    /** @return array{delivery_type: string, address: ?string, latitude: ?string, longitude: ?string, reference: ?string} */
     public function delivery(): array
     {
         return [
             'delivery_type' => $this->validated('delivery_type'),
             'address' => $this->validated('address'),
+            'latitude' => $this->validated('latitude') === null ? null : number_format((float) $this->validated('latitude'), 7, '.', ''),
+            'longitude' => $this->validated('longitude') === null ? null : number_format((float) $this->validated('longitude'), 7, '.', ''),
+            'reference' => $this->validated('reference'),
         ];
     }
 }

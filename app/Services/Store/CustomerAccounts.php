@@ -33,7 +33,7 @@ class CustomerAccounts
 
     /**
      * Deja lista la sesión de quien acaba de ingresar: cambia su id, conserva
-     * la bolsa y descarta la huella de contraseña de una cuenta anterior (si
+     * el carrito y descarta la huella de contraseña de una cuenta anterior (si
      * quedara, la nueva sesión se cerraría sola).
      */
     public function startSession(Session $session): void

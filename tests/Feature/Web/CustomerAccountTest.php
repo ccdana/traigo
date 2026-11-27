@@ -45,19 +45,19 @@ class CustomerAccountTest extends WebTestCase
     private function fillBag(): void
     {
         $this->stock($this->product(), 10);
-        $this->post('/bolsa', ['product_id' => $this->product()->getKey(), 'quantity' => 1]);
+        $this->post('/carrito', ['product_id' => $this->product()->getKey(), 'quantity' => 1]);
     }
 
     #[Test]
-    public function mirar_la_tienda_y_armar_la_bolsa_no_pide_cuenta(): void
+    public function mirar_la_tienda_y_armar_el_carrito_no_pide_cuenta(): void
     {
         $this->fillBag();
 
-        foreach (['/', '/categoria/macetas', '/producto/'.$this->product()->slug, '/por-mayor', '/bolsa'] as $page) {
+        foreach (['/', '/categoria/macetas', '/producto/'.$this->product()->slug, '/por-mayor', '/carrito'] as $page) {
             $this->get($page)->assertOk()->assertSee('Ingresar');
         }
 
-        $this->get('/bolsa')->assertViewHas('units', 1);
+        $this->get('/carrito')->assertViewHas('units', 1);
     }
 
     #[Test]
@@ -75,7 +75,7 @@ class CustomerAccountTest extends WebTestCase
     }
 
     #[Test]
-    public function al_crear_la_cuenta_vuelve_al_pago_con_su_bolsa(): void
+    public function al_crear_la_cuenta_vuelve_al_pago_con_su_carrito(): void
     {
         DB::table('settings')->where('key', 'payment_qr_url')->update(['value' => json_encode('https://example.test/qr.png')]);
         $this->fillBag();
@@ -184,7 +184,7 @@ class CustomerAccountTest extends WebTestCase
     }
 
     #[Test]
-    public function al_salir_se_borra_tambien_la_bolsa(): void
+    public function al_salir_se_borra_tambien_el_carrito(): void
     {
         $this->customer();
         $this->signIn('ana@correo.test');
@@ -193,7 +193,7 @@ class CustomerAccountTest extends WebTestCase
         $this->post('/salir')->assertRedirect('/');
 
         $this->assertGuest('customer');
-        $this->get('/bolsa')->assertSee('Tu bolsa está vacía.');
+        $this->get('/carrito')->assertSee('Tu carrito está vacío.');
     }
 
     #[Test]

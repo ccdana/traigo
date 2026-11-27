@@ -40,7 +40,7 @@ class SessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('customer')->logout();
-        // En una computadora compartida no queda ni la bolsa.
+        // En una computadora compartida no queda ni el carrito.
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

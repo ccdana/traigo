@@ -6,6 +6,8 @@
  */
 
 use App\Http\Controllers\Staff\AuthorizationController;
+use App\Http\Controllers\Staff\DashboardController;
+use App\Http\Controllers\Store\DeliverySearchController;
 use App\Http\Controllers\Staff\InventoryController;
 use App\Http\Controllers\Staff\LoginController;
 use App\Http\Controllers\Staff\ProductController as StaffProductController;
@@ -56,6 +58,7 @@ Route::name('store.')->group(function () {
     // Comprar y ver pedidos pide cuenta. «auth.session» cierra las demás
     // sesiones al cambiar la contraseña, y «actor» anota quién hace el cambio.
     Route::middleware(['auth:customer', 'customer.account', 'auth.session', 'actor'])->group(function () {
+        Route::get('delivery/buscar', DeliverySearchController::class)->middleware('throttle:10,1')->name('delivery.search');
         Route::controller(CheckoutController::class)->prefix('pago')->name('checkout.')->group(function () {
             Route::get('', 'create')->name('create');
             Route::post('', 'store')->middleware('throttle:checkout')->name('store');
@@ -77,7 +80,8 @@ Route::name('store.')->group(function () {
         Route::post('salir', [SessionController::class, 'destroy'])->name('logout');
     });
 
-    Route::controller(BagController::class)->prefix('bolsa')->name('bag.')->group(function () {
+    Route::redirect('bolsa', '/carrito', 301);
+    Route::controller(BagController::class)->prefix('carrito')->name('bag.')->group(function () {
         Route::get('', 'show')->name('show');
         Route::post('', 'store')->name('store');
         Route::patch('{product}', 'update')->name('update')->whereUuid('product');
@@ -100,7 +104,8 @@ Route::prefix('equipo')->name('staff.')->group(function () {
     // «actor» le dice a la base quién hace cada cambio, para el historial.
     Route::middleware(['auth:web', 'staff.web', 'actor'])->group(function () {
         Route::post('salir', [LoginController::class, 'destroy'])->name('logout');
-        Route::redirect('', '/equipo/inventario');
+        Route::redirect('', '/equipo/estadisticas');
+        Route::get('estadisticas', DashboardController::class)->name('dashboard');
 
         // Administración de la tienda: Jime y Dirección (ambos con segundo paso).
         Route::middleware('role:control,management')->group(function () {

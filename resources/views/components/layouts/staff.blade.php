@@ -15,12 +15,13 @@
 
     <header class="bg-ink text-white">
         <div class="wrap flex flex-wrap items-center justify-between gap-3 py-3">
-            <p class="font-display text-xl font-bold tracking-wide">TRAIGO <span class="font-mono text-[11px] font-medium text-cyan uppercase">Panel del equipo</span></p>
+            <a href="{{ route('staff.dashboard') }}" class="font-display text-xl font-bold tracking-wide">TRAIGO <span class="font-mono text-[11px] font-medium text-cyan uppercase">Administración</span></a>
             @auth
                 <div class="flex flex-wrap items-center gap-4 text-sm">
                     @php
                         $role = auth()->user()->role;
                         $menu = array_filter([
+                            'staff.dashboard' => 'Estadísticas',
                             'staff.inventory.index' => 'Inventario',
                             'staff.products.index' => $role->canManageCatalog() ? 'Productos' : null,
                             'staff.promotions.index' => $role->canManageCatalog() ? 'Ofertas' : null,
@@ -31,7 +32,7 @@
                     @endphp
                     <nav aria-label="Panel" class="flex flex-wrap gap-4">
                         @foreach ($menu as $name => $label)
-                            @php($active = request()->routeIs(\Illuminate\Support\Str::beforeLast($name, '.').'.*'))
+                            @php($active = $name === 'staff.dashboard' ? request()->routeIs($name) : request()->routeIs(\Illuminate\Support\Str::beforeLast($name, '.').'.*'))
                             <a href="{{ route($name) }}" @class(['font-medium hover:text-cyan', 'text-cyan' => $active]) @if ($active) aria-current="page" @endif>{{ $label }}</a>
                         @endforeach
                     </nav>

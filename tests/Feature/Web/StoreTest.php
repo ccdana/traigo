@@ -8,6 +8,31 @@ use PHPUnit\Framework\Attributes\Test;
 class StoreTest extends WebTestCase
 {
     #[Test]
+    public function el_presupuesto_desde_250_es_igual_con_y_sin_sesion(): void
+    {
+        DB::table('products')->where('id_product', $this->product()->getKey())->update(['price_unit_bs' => 250]);
+        $guest = $this->get('/?presupuesto=250')->assertOk()->assertSee('Bs 250 en adelante')
+            ->assertViewHas('gifts', fn ($gifts) => $gifts->isNotEmpty() && $gifts->every(fn ($gift) => $gift->priceCents >= 25000));
+        $this->actingAs(\App\Models\User::factory()->customer()->create(), 'customer');
+        $customer = $this->get('/?presupuesto=250')->assertOk();
+        $this->assertSame($guest->viewData('gifts')->pluck('id')->all(), $customer->viewData('gifts')->pluck('id')->all());
+    }
+
+    #[Test]
+    public function filtros_y_orden_usan_el_precio_con_oferta(): void
+    {
+        $product = $this->product();
+        DB::table('products')->where('id_product', $product->getKey())->update(['price_unit_bs' => 160]);
+        $this->promotion($product, ['discount_value' => 140]);
+        $this->get('/categoria/tomatodos?precio=50-150&orden=precio')
+            ->assertOk()->assertViewHas('products', function ($page) use ($product) {
+                $cards = $page->getCollection();
+                return $cards->contains('id', $product->getKey())
+                    && $cards->pluck('priceCents')->all() === $cards->pluck('priceCents')->sort()->values()->all();
+            });
+    }
+
+    #[Test]
     public function la_portada_muestra_las_categorias_el_calendario_y_los_regalos(): void
     {
         $this->get('/')
@@ -68,7 +93,7 @@ class StoreTest extends WebTestCase
 
         $this->stock($product, 10);
 
-        $this->get('/producto/'.$product->slug)->assertSee('Agregar a la bolsa');
+        $this->get('/producto/'.$product->slug)->assertSee('Agregar al carrito');
     }
 
     #[Test]

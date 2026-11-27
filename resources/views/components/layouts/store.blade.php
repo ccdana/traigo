@@ -40,7 +40,7 @@
                     <a href="{{ route('store.login') }}" class="text-sm font-medium hover:text-brand">Ingresar</a>
                 @endif
                 <a href="{{ route('store.bag.show') }}" class="btn-primary py-2.5">
-                    Bolsa · {{ $bagCount }}
+                    Carrito · {{ $bagCount }}
                 </a>
             </div>
 
@@ -97,6 +97,7 @@
                 <h2 class="eyebrow mb-3 text-white/70">Pago</h2>
                 <ul class="space-y-1.5 text-sm">
                     <li>QR bancario</li>
+                    <li><a href="{{ route('staff.login') }}" class="hover:underline">Administración</a></li>
                 </ul>
             </div>
         </div>

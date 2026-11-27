@@ -48,7 +48,7 @@ class CheckoutTest extends WebTestCase
 
     private function fillBag(int $quantity = 2): void
     {
-        $this->post('/bolsa', ['product_id' => $this->product()->getKey(), 'quantity' => $quantity]);
+        $this->post('/carrito', ['product_id' => $this->product()->getKey(), 'quantity' => $quantity]);
     }
 
     /** @param  array<string, mixed>  $data */
@@ -94,16 +94,16 @@ class CheckoutTest extends WebTestCase
         $this->setting('payment_qr_url', null);
         $this->fillBag();
 
-        $this->get('/bolsa')->assertSee('El pago en línea todavía no está disponible.');
-        $this->get('/pago')->assertRedirect('/bolsa');
-        $this->confirm()->assertRedirect('/bolsa');
+        $this->get('/carrito')->assertSee('El pago en línea todavía no está disponible.');
+        $this->get('/pago')->assertRedirect('/carrito');
+        $this->confirm()->assertRedirect('/carrito');
 
         $this->assertSame(0, Order::query()->count());
         $this->assertSame(0, $this->level($this->product())->reserved);
     }
 
     #[Test]
-    public function confirmar_aparta_el_stock_por_dos_horas_y_vacia_la_bolsa(): void
+    public function confirmar_aparta_el_stock_por_dos_horas_y_vacia_el_carrito(): void
     {
         $this->freezeSecond();
         $this->fillBag();
@@ -127,7 +127,7 @@ class CheckoutTest extends WebTestCase
         $this->assertSame(100, $this->level($this->product())->stock);
         $this->assertDatabaseHas('payments', ['order_id' => $order->getKey(), 'method' => 'qr', 'status' => 'pending', 'amount_bs' => '174.00']);
         $this->assertDatabaseCount('commissions', 0);
-        $this->get('/bolsa')->assertSee('Tu bolsa está vacía.');
+        $this->get('/carrito')->assertSee('Tu carrito está vacío.');
     }
 
     #[Test]
@@ -161,7 +161,7 @@ class CheckoutTest extends WebTestCase
         $this->fillBag();
         $this->stock($this->product(), 10, 9);
 
-        $this->confirm()->assertRedirect('/bolsa')->assertSessionHasErrors('order');
+        $this->confirm()->assertRedirect('/carrito')->assertSessionHasErrors('order');
 
         $this->assertSame(0, Order::query()->count());
         $this->assertSame(9, $this->level($this->product())->reserved);
@@ -186,10 +186,26 @@ class CheckoutTest extends WebTestCase
         $this->confirm(['delivery_type' => 'delivery'])->assertSessionHasErrors('address');
         $this->assertSame(0, Order::query()->count());
 
-        $this->confirm(['delivery_type' => 'delivery', 'address' => 'Av. América 250'])->assertSessionHasNoErrors();
+        $this->confirm(['delivery_type' => 'delivery', 'address' => 'Av. América 250', 'latitude' => '-17.38', 'longitude' => '-66.16', 'reference' => 'Puerta azul'])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('order_delivery_locations', ['latitude' => '-17.38', 'longitude' => '-66.16', 'reference' => 'Puerta azul']);
+        $order = Order::query()->firstOrFail();
+        $this->assertStringContainsString('https://www.google.com/maps/search/', $order->shipping_address);
+        $this->get('/pedido/'.$order->public_token)->assertSee('Ver punto de entrega en el mapa')->assertSee('Puerta azul');
 
         $this->fillBag();
-        $this->get('/pago')->assertSee('Av. América 250');
+        $this->get('/pago')->assertSee('Av. América 250')->assertSee('value="-17.3800000"', false);
+    }
+
+    #[Test]
+    public function delivery_exige_coordenadas_validas_y_recojo_no_las_guarda(): void
+    {
+        $this->fillBag();
+        $this->confirm(['delivery_type' => 'delivery', 'address' => 'Centro'])->assertSessionHasErrors(['latitude', 'longitude']);
+        $this->confirm(['delivery_type' => 'delivery', 'address' => 'Centro', 'latitude' => 91, 'longitude' => -181])->assertSessionHasErrors(['latitude', 'longitude']);
+        $this->assertDatabaseCount('orders', 0);
+        $this->confirm(['latitude' => '-17.38', 'longitude' => '-66.16', 'reference' => 'No guardar'])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('order_delivery_locations', 0);
+        $this->assertNull(Order::query()->firstOrFail()->shipping_address);
     }
 
     #[Test]
@@ -253,7 +269,7 @@ class CheckoutTest extends WebTestCase
         $this->confirm(['client_uuid' => $key]);
         $order = Order::query()->firstOrFail();
 
-        // La bolsa ya quedó vacía, como al volver atrás en el navegador.
+        // El carrito ya quedó vacío, como al volver atrás en el navegador.
         $this->confirm(['client_uuid' => $key])->assertRedirect("/pedido/{$order->public_token}");
 
         $this->assertSame(1, Order::query()->count());

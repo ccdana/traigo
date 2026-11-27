@@ -3,7 +3,7 @@
 
 <x-layouts.store title="Confirma tu pedido">
     <div class="wrap py-6">
-        <x-breadcrumb :trail="['Inicio' => route('store.home'), 'Bolsa' => route('store.bag.show')]" current="Pago" />
+        <x-breadcrumb :trail="['Inicio' => route('store.home'), 'Carrito' => route('store.bag.show')]" current="Pago" />
         <h1 class="mt-3 text-4xl">Confirma tu pedido</h1>
         <x-flash class="mt-4" />
 
@@ -35,6 +35,9 @@
                     <div class="mt-4" data-delivery-address>
                         <label for="address" class="eyebrow">Dirección de entrega (solo delivery)</label>
                         <input id="address" name="address" value="{{ old('address', $lastAddress) }}" maxlength="300" autocomplete="street-address" class="field mt-1">
+                        <x-store.delivery-map :last-location="$lastLocation" />
+                        <label for="reference" class="mt-4 block text-sm font-medium">Referencia para encontrar la puerta (opcional)</label>
+                        <input id="reference" name="reference" value="{{ old('reference', $lastLocation?->reference) }}" maxlength="300" placeholder="Color de la puerta, piso o un lugar cercano" class="field mt-1">
                         <p class="mt-2 text-xs text-muted">El delivery se coordina por WhatsApp. {{ $deliveryNote ? "Costo de envío: {$deliveryNote}." : 'El costo de envío se confirma aparte.' }}</p>
                     </div>
                 </fieldset>

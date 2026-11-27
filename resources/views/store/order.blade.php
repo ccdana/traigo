@@ -76,11 +76,15 @@
                 </ul>
                 <p class="text-xs text-muted">
                     @if ($order->delivery_type === 'delivery')
-                        Entrega: delivery · {{ $order->shipping_address }}. El costo de envío se coordina aparte.
+                        Entrega: delivery · {{ $deliveryLocation?->address ?? $order->shipping_address }}. El costo de envío se coordina aparte.
                     @else
                         Entrega: recojo en el punto{{ $pickupAddress ? " · {$pickupAddress}" : '' }}.
                     @endif
                 </p>
+                @if ($deliveryLocation)
+                    @if ($deliveryLocation->reference)<p class="mt-2 text-sm">Referencia: {{ $deliveryLocation->reference }}</p>@endif
+                    <a href="{{ \App\Services\Store\DeliveryLocations::mapUrl($deliveryLocation->latitude, $deliveryLocation->longitude) }}" class="mt-3 inline-block text-sm text-brand underline" target="_blank" rel="noopener noreferrer">Ver punto de entrega en el mapa</a>
+                @endif
             </section>
 
             <section class="min-w-0">

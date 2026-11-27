@@ -3,13 +3,14 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Support\WebAdminAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * El panel web es para almacén, Jime y Dirección con la cuenta activa. Si eso
- * cambia mientras tienen la sesión abierta, se cierra en la siguiente página.
+ * El panel web es exclusivo de Dirección con la cuenta activa. Si eso cambia
+ * mientras tiene la sesión abierta, se cierra en la siguiente página.
  */
 class EnsureWebStaff
 {
@@ -17,12 +18,12 @@ class EnsureWebStaff
     {
         $user = $request->user();
 
-        if (! $user?->canUseApp() || ! $user->role->canUseInventoryPanel()) {
+        if (! WebAdminAccess::allows($user)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return to_route('staff.login')->withErrors(['code' => 'Tu sesión terminó. Ingresa otra vez.']);
+            return to_route('staff.login')->withErrors(['code' => 'El panel web está habilitado solo para Dirección.']);
         }
 
         $response = $next($request);

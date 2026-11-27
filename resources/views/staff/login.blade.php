@@ -1,7 +1,7 @@
 <x-layouts.staff title="Ingresar">
     <div class="mx-auto max-w-sm bg-white p-6">
-        <h1 class="text-2xl">Ingresar</h1>
-        <p class="mt-1 text-sm text-muted">Con el mismo código y PIN de la app.</p>
+        <h1 class="text-2xl">Administración</h1>
+        <p class="mt-1 text-sm text-muted">Acceso de Dirección con código, PIN y verificación por correo.</p>
 
         <x-flash class="mt-4" />
 
@@ -9,7 +9,7 @@
             @csrf
             <div>
                 <label for="code" class="eyebrow">Código</label>
-                <input id="code" name="code" value="{{ old('code') }}" required maxlength="20" autocomplete="username" autocapitalize="characters" class="field mt-1 uppercase" placeholder="ISA-03">
+                <input id="code" name="code" value="{{ old('code') }}" required maxlength="20" autocomplete="username" autocapitalize="characters" class="field mt-1 uppercase" placeholder="DIR-08">
             </div>
             <div>
                 <label for="pin" class="eyebrow">PIN</label>

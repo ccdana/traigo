@@ -30,8 +30,8 @@ final class PlaceWebOrder
 
     /**
      * @param  User  $customer  la cuenta que compra
-     * @param  array<string, int>  $items  cantidad por producto (la bolsa)
-     * @param  array{delivery_type: 'pickup'|'delivery', address: ?string}  $delivery  ya validado
+     * @param  array<string, int>  $items  cantidad por producto (el carrito)
+     * @param  array{delivery_type: 'pickup'|'delivery', address: ?string, latitude?: ?string, longitude?: ?string, reference?: ?string}  $delivery  ya validado
      * @param  int  $expectedCents  el total que la persona vio al confirmar
      */
     public function place(User $customer, array $items, array $delivery, int $expectedCents, string $clientUuid): Order
@@ -48,9 +48,9 @@ final class PlaceWebOrder
                 return $previous;
             }
 
-            // Después del reintento: al reenviar, la bolsa ya está vacía.
+            // Después del reintento: al reenviar, el carrito ya está vacío.
             if ($items === []) {
-                throw ApiException::invalid('Tu bolsa está vacía.', 'empty_bag');
+                throw ApiException::invalid('Tu carrito está vacío.', 'empty_bag');
             }
 
             $this->ensureNotTooManyOpen($customer);
@@ -108,7 +108,7 @@ final class PlaceWebOrder
 
         return collect($items)->map(function (int $quantity, string $productId) use ($inventory, $products, $promotions): array {
             $product = $products->get($productId)
-                ?? throw ApiException::conflict('product_unavailable', 'Un producto de tu bolsa ya no está a la venta.');
+                ?? throw ApiException::conflict('product_unavailable', 'Un producto de tu carrito ya no está a la venta.');
 
             $row = $inventory->get($productId);
             $available = $row ? $row->stock - $row->reserved : 0;
@@ -132,7 +132,7 @@ final class PlaceWebOrder
     }
 
     /**
-     * @param  array{delivery_type: string, address: ?string}  $delivery
+     * @param  array{delivery_type: string, address: ?string, latitude?: ?string, longitude?: ?string, reference?: ?string}  $delivery
      * @param  Collection<int, array<string, mixed>>  $lines
      */
     private function store(User $customer, array $delivery, Collection $lines, int $total, string $clientUuid): Order
@@ -145,13 +145,15 @@ final class PlaceWebOrder
             'customer_name' => Str::squish("{$customer->name} {$customer->lastname}"),
             'customer_phone' => $customer->phone,
             'delivery_type' => $delivery['delivery_type'],
-            'shipping_address' => $delivery['delivery_type'] === 'delivery' ? Str::squish((string) $delivery['address']) : null,
+            'shipping_address' => DeliveryLocations::addressForApp($delivery),
             // El costo del envío se coordina aparte: queda «por definir».
             'subtotal_bs' => Money::format($total),
             'total_bs' => Money::format($total),
             'expires_at' => now()->addHours($this->settings->reservationHours()),
             'client_uuid' => $clientUuid,
         ])->refresh();
+
+        app(DeliveryLocations::class)->save($order, $delivery);
 
         foreach ($lines as $line) {
             $product = $line['product'];

@@ -73,7 +73,7 @@
                     <ul class="flex flex-wrap gap-2 lg:flex-col lg:items-start">
                         <li><a @class([$budget === null ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['para' => $audience])) }}#regalos">Todos</a></li>
                         @foreach (StoreCatalog::GIFT_BUDGETS as $option)
-                            <li><a @class([$budget === $option ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['presupuesto' => $option, 'para' => $audience])) }}#regalos">Hasta Bs {{ $option }}</a></li>
+                            <li><a @class([$budget === $option ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['presupuesto' => $option, 'para' => $audience])) }}#regalos">{{ $option === 250 ? 'Bs 250 en adelante' : 'Hasta Bs '.$option }}</a></li>
                         @endforeach
                     </ul>
                 </div>
