@@ -16,6 +16,8 @@ return [
         'string' => ':Attribute debe tener entre :min y :max letras.',
     ],
     'boolean' => ':Attribute debe ser sí o no.',
+    'confirmed' => ':Attribute no coincide con su repetición.',
+    'current_password' => 'La contraseña actual no es correcta.',
     'date' => ':Attribute no es una fecha válida.',
     'date_format' => ':Attribute no tiene el formato :format.',
     'decimal' => ':Attribute debe tener :decimal decimales.',

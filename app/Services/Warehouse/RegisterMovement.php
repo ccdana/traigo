@@ -18,9 +18,10 @@ class RegisterMovement
 
     /**
      * @param  array{product_id: string, type: string, quantity: int|string, note?: ?string, inventory_count_id?: ?string}  $data  ya validada
+     * @param  'app'|'admin'  $source  desde dónde se registra (la app o el panel web)
      * @return array{product_id: string, stock: int, reserved: int, available: int}
      */
-    public function register(User $warehouse, array $data, string $clientUuid): array
+    public function register(User $warehouse, array $data, string $clientUuid, string $source = 'app'): array
     {
         $productId = $data['product_id'];
         $type = $data['type'];
@@ -28,7 +29,7 @@ class RegisterMovement
         $note = filled($data['note'] ?? null) ? trim($data['note']) : null;
         $countId = $data['inventory_count_id'] ?? null;
 
-        return DB::transaction(function () use ($warehouse, $productId, $type, $quantity, $note, $countId, $clientUuid) {
+        return DB::transaction(function () use ($warehouse, $productId, $type, $quantity, $note, $countId, $clientUuid, $source) {
             // Segunda barrera contra duplicados, por si se perdió la respuesta
             // guardada del primer envío.
             $previous = DB::table('stock_movements')->where('client_uuid', $clientUuid)->first();
@@ -76,7 +77,7 @@ class RegisterMovement
                 'quantity' => $quantity,
                 'inventory_count_id' => $countId,
                 'client_uuid' => $clientUuid,
-                'source' => 'app',
+                'source' => $source,
                 'created_by' => $warehouse->getKey(),
                 'note' => $note,
             ]);

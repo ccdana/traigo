@@ -3,13 +3,15 @@
 namespace App\Exceptions;
 
 use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
  * Un error de la API con el formato del contrato:
  * `{ "message", "code"?, "data"? }`. El mensaje va en español y listo para
- * mostrarse en la app.
+ * mostrarse en la app. Fuera de la API (páginas web) se comporta como un error
+ * HTTP con el mismo código: un 403 no se vuelve un 500.
  */
-class ApiException extends Exception
+class ApiException extends Exception implements HttpExceptionInterface
 {
     /**
      * @param  array<string, mixed>|null  $data
@@ -23,6 +25,17 @@ class ApiException extends Exception
         public readonly array $headers = [],
     ) {
         parent::__construct($message);
+    }
+
+    public function getStatusCode(): int
+    {
+        return $this->status;
+    }
+
+    /** @return array<string, string|int> */
+    public function getHeaders(): array
+    {
+        return $this->headers;
     }
 
     public static function unauthorized(string $message): self

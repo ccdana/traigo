@@ -42,6 +42,11 @@ final class MemberAccess
     private static function closeSessions(User $member): void
     {
         $member->tokens()->delete();
+
+        // También las sesiones del panel web.
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table'))->where('user_id', $member->getKey())->delete();
+        }
         TwoFactorChallenge::query()
             ->where('user_id', $member->getKey())
             ->whereNull('consumed_at')

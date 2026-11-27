@@ -26,6 +26,41 @@ enum UserRole: string
         return $this === self::Control || $this === self::Management;
     }
 
+    /** Quienes entran al panel web de inventario; el resto trabaja con la app. */
+    public function canUseInventoryPanel(): bool
+    {
+        return in_array($this, [self::Warehouse, self::Control, self::Management], true);
+    }
+
+    /** Solo almacén registra entradas y ajustes, igual que en la app. */
+    public function canMoveStock(): bool
+    {
+        return $this === self::Warehouse;
+    }
+
+    /** Jime y Dirección administran productos, ofertas y datos de la tienda. */
+    public function canManageCatalog(): bool
+    {
+        return $this === self::Control || $this === self::Management;
+    }
+
+    /** Jime propone precios y crea ofertas. */
+    public function canProposePrices(): bool
+    {
+        return $this === self::Control;
+    }
+
+    public function canCreatePromotions(): bool
+    {
+        return $this === self::Control;
+    }
+
+    /** Dirección autoriza, publica productos y cambia el QR de pago. */
+    public function canAuthorize(): bool
+    {
+        return $this === self::Management;
+    }
+
     public function canSell(): bool
     {
         return $this === self::Seller || $this === self::Wholesale;

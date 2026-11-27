@@ -5,6 +5,7 @@ namespace App\Services\Management;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Services\Control\PriceChanges;
+use App\Services\Store\StorePricing;
 use App\Support\AuditNote;
 use App\Support\Dates;
 use App\Support\Lists;
@@ -13,8 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Las promociones de la tienda web (todavía sin pantalla para crearlas). Solo
- * se publican autorizadas y ninguna baja del precio por mayor.
+ * Las promociones de la tienda web, que se crean en el panel. Solo se publican
+ * autorizadas y ninguna baja del precio por mayor.
  */
 class PromotionAuthorization implements AuthorizationKind
 {
@@ -101,11 +102,7 @@ class PromotionAuthorization implements AuthorizationKind
 
         foreach ($products as $product) {
             $unit = Money::toCents($product->price_unit_bs);
-            $price = match ($promotion->discount_type) {
-                'percentage' => (int) round($unit * (100 - $value) / 100),
-                'fixed_amount' => $unit - (int) round($value * 100),
-                'fixed_price' => (int) round($value * 100),
-            };
+            $price = StorePricing::discounted($promotion->discount_type, $value, $unit);
             $floor = $product->price_wholesale_bs === null ? 1 : Money::toCents($product->price_wholesale_bs);
 
             if ($price < $floor) {

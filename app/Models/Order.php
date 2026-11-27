@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
     'origin', 'status', 'seller_id', 'created_by', 'customer_name', 'customer_phone', 'delivery_type',
     'shipping_address', 'subtotal_bs', 'total_bs', 'promised_dispatch_at', 'paid_at', 'ready_at',
     'dispatched_at', 'delivered_at', 'cancelled_at', 'cancel_reason', 'duplicate_of_id', 'client_uuid',
+    'expires_at', 'customer_id',
 ])]
 class Order extends Model
 {
@@ -30,6 +31,7 @@ class Order extends Model
     {
         return [
             'status' => OrderStatus::class,
+            'expires_at' => 'datetime',
             'promised_dispatch_at' => 'datetime',
             'paid_at' => 'datetime',
             'ready_at' => 'datetime',
@@ -69,14 +71,17 @@ class Order extends Model
         return $this->hasMany(Commission::class, 'order_id', 'id_order');
     }
 
-    /** Guarda en la línea de tiempo el cambio de estado. */
-    public function recordStatus(?OrderStatus $from, User $by, ?string $note = null): void
+    /**
+     * Guarda en la línea de tiempo el cambio de estado. Sin autor: lo hizo el
+     * cliente de la tienda o el sistema.
+     */
+    public function recordStatus(?OrderStatus $from, ?User $by, ?string $note = null): void
     {
         DB::table('order_status_history')->insert([
             'order_id' => $this->getKey(),
             'from_status' => $from?->value,
             'to_status' => $this->status->value,
-            'changed_by' => $by->getKey(),
+            'changed_by' => $by?->getKey(),
             'note' => $note,
         ]);
     }

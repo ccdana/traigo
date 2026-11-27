@@ -3,7 +3,92 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Identidad de Traigo, tomada de los mockups. Cambiar un color aquí lo cambia en toda la web. */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --color-brand: #5b12f5;
+    --color-brand-dark: #4409c4;
+    --color-ink: #150b3d;
+    --color-muted: #6b6785;
+    --color-line: #dcdaea;
+    --color-soft: #f2f1f8;
+    --color-cyan: #12c4e6;
+
+    --color-art-lilac: #e4dcff;
+    --color-art-sky: #cdeffc;
+    --color-art-mint: #cff8f4;
+
+    --color-ok: #15803d;
+    --color-warn: #a15c07;
+    --color-danger: #b4232a;
+    --color-ok-soft: #e3f5e9;
+    --color-warn-soft: #fdf0da;
+    --color-danger-soft: #fbe7e8;
+}
+
+@layer base {
+    body {
+        @apply bg-white font-sans text-ink antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        @apply font-display font-bold text-balance;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand;
+    }
+}
+
+/* Bases que reutilizan otras clases: en Tailwind v4 van como @utility. */
+/* La esquina cortada es la firma de la marca. */
+@utility cut {
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+
+@utility btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 px-5 py-3 font-display text-sm font-semibold transition-colors;
+}
+
+@utility chip {
+    @apply inline-flex items-center bg-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-line;
+}
+
+@layer components {
+    .btn-primary {
+        @apply btn cut bg-brand text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-line disabled:text-muted;
+    }
+
+    .btn-dark {
+        @apply btn cut bg-ink text-white hover:bg-brand;
+    }
+
+    .btn-soft {
+        @apply btn bg-soft text-ink hover:bg-line;
+    }
+
+    .eyebrow {
+        @apply font-mono text-[11px] font-medium tracking-wider text-muted uppercase;
+    }
+
+    .field {
+        @apply w-full border-0 border-b-2 border-ink bg-soft px-3 py-2.5 text-sm text-ink placeholder:text-muted;
+    }
+
+    .wrap {
+        @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+    }
+
+    .chip-active {
+        @apply chip cut bg-ink pr-4 text-white hover:bg-ink;
+    }
+
+    .badge {
+        @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium;
+    }
 }
