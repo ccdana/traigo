@@ -1,0 +1,23 @@
+.shopping-journey {
+    margin-block: clamp(2rem, 5vw, 5rem);
+    padding-block: clamp(2rem, 5vw, 4.5rem);
+    background: var(--color-soft);
+}
+
+.journey-layout { display: grid; gap: 1.5rem; margin-top: 1.5rem; }
+.journey-steps { border-top: 1px solid var(--color-line); }
+.journey-steps li {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    align-content: center;
+    gap: .6rem;
+    border-bottom: 1px solid var(--color-line);
+    padding-block: 1.35rem;
+}
+.journey-number { align-self: start; color: var(--color-brand-dark); font-family: var(--font-mono); font-size: .85rem; padding-top: .3rem; }
+.journey-steps h3 { font-size: clamp(1.15rem, 2vw, 1.6rem); line-height: 1.2; }
+.journey-steps p { margin-top: .6rem; max-width: 38ch; color: var(--color-muted); }
+
+@media (min-width: 850px) {
+    .journey-layout { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: clamp(2rem, 6vw, 5rem); align-items: start; }
+}

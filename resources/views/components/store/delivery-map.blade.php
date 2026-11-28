@@ -15,8 +15,8 @@
     </div>
     <ul data-map-results class="divide-y divide-line border border-line" aria-label="Direcciones encontradas" hidden></ul>
     <div data-map-canvas class="delivery-map" role="region" aria-label="Mapa del punto de entrega"></div>
-    <p data-map-status role="status" aria-live="polite" class="text-sm text-muted">Elige el punto de entrega. El mapa comienza en Cochabamba.</p>
-    <details data-map-coordinates class="text-xs text-muted">
+    <p data-map-status role="status" tabindex="-1" class="text-sm text-muted">Elige el punto de entrega. El mapa comienza en Cochabamba.</p>
+    <details data-map-coordinates class="text-sm text-muted" @if ($errors->hasAny(['latitude', 'longitude'])) open @endif>
         <summary class="cursor-pointer">Ver o ingresar coordenadas</summary>
         <div class="mt-2 grid grid-cols-2 gap-3">
             <div><label for="latitude">Latitud</label><input class="field" id="latitude" name="latitude" type="number" step="any" min="-90" max="90" value="{{ old('latitude', $lastLocation?->latitude) }}"></div>

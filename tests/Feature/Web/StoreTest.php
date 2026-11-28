@@ -114,10 +114,12 @@ class StoreTest extends WebTestCase
             'starts_at' => now()->addDays(2),
             'ends_at' => now()->addDays(3),
         ]);
-        $this->promotion($this->product('8109'), ['name' => 'Puerta abierta', 'calendar_day' => 4]);
+        $featured = $this->product('8109');
+        $this->stock($featured, 10);
+        $this->promotion($featured, ['name' => 'Puerta abierta', 'calendar_day' => 4]);
 
         $this->get('/')
-            ->assertSee('Puerta abierta')
+            ->assertSeeInOrder(['Abre la Navidad', 'Oferta del calendario', 'Puerta abierta'])
             ->assertDontSee('Sorpresa secreta');
     }
 

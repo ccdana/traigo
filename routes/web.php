@@ -36,7 +36,10 @@ Route::name('store.')->group(function () {
     Route::middleware('guest:customer')->group(function () {
         Route::controller(RegisterController::class)->prefix('registro')->name('register.')->group(function () {
             Route::get('', 'create')->name('create');
-            Route::post('', 'store')->middleware('throttle:customer-register')->name('store');
+            Route::post('', 'store')->middleware('throttle:customer-register')->block()->name('store');
+            Route::get('verificar', 'verification')->name('verification');
+            Route::post('verificar', 'verify')->middleware('throttle:customer-registration-verify')->block()->name('verify');
+            Route::post('reenviar', 'resend')->middleware('throttle:customer-register')->block()->name('resend');
         });
 
         Route::get('ingresar', [SessionController::class, 'create'])->name('login');
@@ -92,14 +95,9 @@ Route::name('store.')->group(function () {
 Route::prefix('equipo')->name('staff.')->group(function () {
     Route::controller(LoginController::class)->group(function () {
         Route::get('ingresar', 'create')->name('login');
-        Route::post('ingresar', 'store')->middleware('throttle:login')->name('login.store');
-
-        Route::get('verificar', 'twoFactor')->name('two-factor.create');
-        Route::middleware('throttle:two-factor')->group(function () {
-            Route::post('verificar', 'verify')->name('two-factor.verify');
-            Route::post('verificar/reenviar', 'resend')->name('two-factor.resend');
-        });
+        Route::post('ingresar', 'store')->middleware('throttle:staff-web-login')->name('login.store');
     });
+    Route::redirect('verificar', '/equipo/ingresar');
 
     // «actor» le dice a la base quién hace cada cambio, para el historial.
     Route::middleware(['auth:web', 'staff.web', 'actor'])->group(function () {
@@ -107,7 +105,7 @@ Route::prefix('equipo')->name('staff.')->group(function () {
         Route::redirect('', '/equipo/estadisticas');
         Route::get('estadisticas', DashboardController::class)->name('dashboard');
 
-        // Administración de la tienda: Jime y Dirección (ambos con segundo paso).
+        // Mantiene los permisos de cada operación del catálogo.
         Route::middleware('role:control,management')->group(function () {
             Route::controller(StaffProductController::class)->prefix('productos')->name('products.')->group(function () {
                 Route::get('', 'index')->name('index');

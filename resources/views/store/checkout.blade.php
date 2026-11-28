@@ -7,7 +7,7 @@
         <h1 class="mt-3 text-4xl">Confirma tu pedido</h1>
         <x-flash class="mt-4" />
 
-        <form method="POST" action="{{ route('store.checkout.store') }}" data-once class="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <form method="POST" action="{{ route('store.checkout.store') }}" data-once class="checkout-layout mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             @csrf
             <input type="hidden" name="expected_total" value="{{ $expectedTotal }}">
             <input type="hidden" name="client_uuid" value="{{ old('client_uuid', (string) Str::uuid()) }}">
@@ -24,17 +24,24 @@
 
                 <fieldset class="border-t-2 border-ink pt-3" data-delivery>
                     <legend class="contents"><h2 class="text-xl"><span class="font-mono text-xs text-brand">02</span> Entrega</h2></legend>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        @foreach (['pickup' => 'Recojo en el punto', 'delivery' => 'Delivery'] as $value => $label)
+                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                        @foreach (['pickup' => ['Recojo en el punto', 'Recoge tu pedido cuando esté listo.'], 'delivery' => ['Delivery', 'Indica tu dirección y el punto en el mapa.']] as $value => [$label, $description])
                             <label class="cursor-pointer">
-                                <input type="radio" name="delivery_type" value="{{ $value }}" class="peer sr-only" @checked(old('delivery_type', 'pickup') === $value)>
-                                <span class="chip px-4 py-2.5 text-sm peer-checked:bg-ink peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-brand">{{ $label }}</span>
+                                <input type="radio" name="delivery_type" value="{{ $value }}" class="sr-only" aria-labelledby="delivery-{{ $value }}-label" aria-describedby="delivery-{{ $value }}-description" @checked(old('delivery_type', 'pickup') === $value)>
+                                <span class="checkout-choice">
+                                    <span class="checkout-choice-dot" aria-hidden="true"></span>
+                                    <span>
+                                        <strong class="block" id="delivery-{{ $value }}-label">{{ $label }}</strong>
+                                        <span class="mt-1 block text-sm text-muted" id="delivery-{{ $value }}-description">{{ $description }}</span>
+                                    </span>
+                                </span>
                             </label>
                         @endforeach
                     </div>
                     <div class="mt-4" data-delivery-address>
-                        <label for="address" class="eyebrow">Dirección de entrega (solo delivery)</label>
-                        <input id="address" name="address" value="{{ old('address', $lastAddress) }}" maxlength="300" autocomplete="street-address" class="field mt-1">
+                        <label for="address" class="block text-sm font-medium">Dirección de entrega</label>
+                        <input id="address" name="address" value="{{ old('address', $lastAddress) }}" maxlength="300" autocomplete="street-address" class="field mt-1" @error('address') aria-invalid="true" aria-describedby="address-error" @enderror>
+                        @error('address')<p class="mt-1 text-sm text-danger" id="address-error">{{ $message }}</p>@enderror
                         <x-store.delivery-map :last-location="$lastLocation" />
                         <label for="reference" class="mt-4 block text-sm font-medium">Referencia para encontrar la puerta (opcional)</label>
                         <input id="reference" name="reference" value="{{ old('reference', $lastLocation?->reference) }}" maxlength="300" placeholder="Color de la puerta, piso o un lugar cercano" class="field mt-1">
@@ -49,7 +56,7 @@
                 </section>
             </div>
 
-            <aside class="cut bg-soft p-5" aria-labelledby="tu-pedido">
+            <aside class="checkout-summary bg-soft p-5" aria-labelledby="tu-pedido">
                 <h2 id="tu-pedido" class="eyebrow text-brand">Tu pedido</h2>
                 <ul class="mt-3 space-y-2 text-sm">
                     @foreach ($lines as $line)
@@ -66,7 +73,10 @@
                         <dd class="font-display text-2xl font-bold">{{ Money::display($subtotal_cents) }}</dd>
                     </div>
                 </dl>
-                <button type="submit" class="btn-primary mt-4 w-full">Confirmar pedido · {{ Money::display($subtotal_cents) }}</button>
+                <button type="submit" class="checkout-submit btn-primary mt-4 w-full">
+                    <span class="checkout-submit-ready">Confirmar pedido · {{ Money::display($subtotal_cents) }}</span>
+                    <span class="checkout-submit-busy">Confirmando pedido…</span>
+                </button>
                 <p class="mt-3 text-xs text-muted">Reservamos tu pedido por {{ $hours }} horas. Si no pagas a tiempo, vence y el stock vuelve a la tienda.</p>
             </aside>
         </form>

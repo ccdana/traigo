@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Mail\CustomerPasswordResetMail;
+use App\Mail\CustomerRegistrationCodeMail;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -77,11 +78,19 @@ class CustomerAccountTest extends WebTestCase
     #[Test]
     public function al_crear_la_cuenta_vuelve_al_pago_con_su_carrito(): void
     {
+        Mail::fake();
         DB::table('settings')->where('key', 'payment_qr_url')->update(['value' => json_encode('https://example.test/qr.png')]);
         $this->fillBag();
         $this->get('/pago')->assertRedirect('/ingresar');
 
-        $this->register()->assertSessionHasNoErrors()->assertRedirect('/pago');
+        $this->register()->assertSessionHasNoErrors()->assertRedirect('/registro/verificar');
+        $this->assertDatabaseMissing('users', ['email' => 'ana@correo.test']);
+        $this->assertGuest('customer');
+        Mail::assertSent(CustomerRegistrationCodeMail::class, fn ($mail) => $mail->hasTo('ana@correo.test'));
+        $code = Mail::sent(CustomerRegistrationCodeMail::class)->sole()->code;
+        $this->post('/registro/verificar', ['code' => $code === '000000' ? '000001' : '000000'])->assertSessionHasErrors('code');
+        $this->assertGuest('customer');
+        $this->post('/registro/verificar', ['code' => $code])->assertRedirect('/pago');
 
         $customer = User::query()->where('email', 'ana@correo.test')->firstOrFail();
         $this->assertAuthenticatedAs($customer, 'customer');
@@ -90,18 +99,44 @@ class CustomerAccountTest extends WebTestCase
         $this->assertNull($customer->code);
         $this->assertSame('71200000', $customer->phone);
         $this->assertTrue(Hash::check('una-clave-larga', $customer->password));
+        $this->assertNotNull($customer->email_verified_at);
         $this->get('/pago')->assertOk()->assertSee('Ana Rojas')->assertViewHas('units', 1);
+
+        $this->post('/salir');
+        $this->signIn('ana@correo.test', 'una-clave-larga')->assertRedirect('/');
+        Mail::assertSentCount(1);
     }
 
     #[Test]
     public function el_registro_no_permite_elegir_rol_ni_codigo(): void
     {
+        Mail::fake();
         $this->register(['role' => 'management', 'code' => 'DIR-99', 'pin_hash' => Hash::make('1111'), 'is_active' => false])
             ->assertSessionHasNoErrors();
+        $this->post('/registro/verificar', ['code' => Mail::sent(CustomerRegistrationCodeMail::class)->sole()->code]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'ana@correo.test', 'role' => 'customer', 'code' => null, 'pin_hash' => null, 'is_active' => true,
         ]);
+    }
+
+    #[Test]
+    public function el_codigo_vence_se_puede_reenviar_y_se_consume_al_confirmar(): void
+    {
+        Mail::fake();
+        $this->register()->assertRedirect('/registro/verificar');
+        $original = Mail::sent(CustomerRegistrationCodeMail::class)->sole()->code;
+        $this->post('/registro/reenviar')->assertSessionHasErrors('code');
+        $this->travel(11)->minutes();
+        $this->post('/registro/verificar', ['code' => $original])->assertSessionHasErrors('code');
+        $this->post('/registro/reenviar')->assertRedirect('/registro/verificar')->assertSessionHasNoErrors();
+        $new = Mail::sent(CustomerRegistrationCodeMail::class)->last()->code;
+        Mail::assertSentCount(2);
+        $this->post('/registro/verificar', ['code' => $original])->assertSessionHasErrors('code');
+        $this->post('/registro/verificar', ['code' => $new])->assertRedirect('/')->assertSessionMissing('store.registration');
+        $this->post('/salir');
+        $this->post('/registro/verificar', ['code' => $new])->assertRedirect('/registro');
+        $this->assertGuest('customer');
     }
 
     #[Test]

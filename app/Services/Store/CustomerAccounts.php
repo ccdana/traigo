@@ -43,15 +43,21 @@ class CustomerAccounts
     }
 
     /** @param  array{name: string, lastname: string, phone: string, email: string, password: string}  $data  ya validado */
-    public function register(#[SensitiveParameter] array $data): User
+    public function register(#[SensitiveParameter] array $data, bool $verified = false): User
     {
-        return User::create([
+        $customer = new User([
             ...$this->contact($data),
             'role' => UserRole::Customer,
             // El modelo la guarda cifrada.
             'password' => $data['password'],
             'is_active' => true,
         ]);
+        if ($verified) {
+            $customer->forceFill(['email_verified_at' => now()]);
+        }
+        $customer->save();
+
+        return $customer;
     }
 
     /** @param  array{name: string, lastname: string, phone: string, email: string}  $data  ya validado */

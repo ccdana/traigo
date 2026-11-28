@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Web;
 
-use App\Mail\TwoFactorCodeMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,23 +18,22 @@ class StaffInventoryTest extends WebTestCase
     #[Test]
     public function solo_direccion_puede_iniciar_sesion_en_el_panel(): void
     {
-        foreach (['ISA-03', 'JIM-01', 'ALI-04', 'KIM-05', 'AIL-02', 'SIS-06'] as $code) {
-            $this->from('/equipo/ingresar')->post('/equipo/ingresar', ['code' => $code, 'pin' => '1234'])->assertSessionHasErrors('code');
-            $this->assertGuest('web');
-        }
+        config(['traigo.web.admin_code' => 'JIM-01']);
+        $this->post('/equipo/ingresar', ['password' => '1234'])->assertForbidden();
+        $this->assertGuest('web');
     }
 
     #[Test]
-    public function direccion_necesita_pin_y_codigo_del_correo(): void
+    public function direccion_ingresa_solo_con_su_clave_y_sin_correo(): void
     {
         Mail::fake();
-        $this->from('/equipo/ingresar')->post('/equipo/ingresar', ['code' => 'DIR-08', 'pin' => '9999'])->assertSessionHasErrors('code');
-        $this->post('/equipo/ingresar', ['code' => 'DIR-08', 'pin' => '1234'])->assertRedirect('/equipo/verificar');
+        $admin = $this->member('DIR-08');
+        $admin->update(['email' => null]);
+        $this->from('/equipo/ingresar')->post('/equipo/ingresar', ['password' => '9999'])->assertSessionHasErrors('password');
         $this->assertGuest('web');
-        $code = Mail::sent(TwoFactorCodeMail::class)->last()->code;
-        $this->post('/equipo/verificar', ['code' => $code === '000000' ? '000001' : '000000'])->assertSessionHasErrors('code');
-        $this->post('/equipo/verificar', ['code' => $code])->assertRedirect('/equipo/estadisticas');
-        $this->assertAuthenticatedAs($this->member('DIR-08'), 'web');
+        $this->post('/equipo/ingresar', ['password' => '1234'])->assertRedirect('/equipo/estadisticas');
+        $this->assertAuthenticatedAs($admin, 'web');
+        Mail::assertNothingOutgoing();
     }
 
     #[Test]

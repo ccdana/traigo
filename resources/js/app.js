@@ -1,3 +1,5 @@
+import './interface.js';
+
 /*
  * Mejoras sobre páginas que ya funcionan sin JavaScript: la cuenta regresiva,
  * los botones de cantidad y el cambio de foto.
@@ -85,7 +87,9 @@ function delivery(element) {
         const missing = ['latitude', 'longitude'].some((name) => !mapRoot.querySelector(`[name="${name}"]`).value);
         if (missing) {
             event.preventDefault();
-            mapRoot.querySelector('[data-map-status]').textContent = 'Marca el punto de entrega antes de confirmar el pedido.';
+            const status = mapRoot.querySelector('[data-map-status]');
+            status.textContent = 'Marca el punto de entrega antes de confirmar el pedido.';
+            status.focus({ preventScroll: true });
             mapRoot.scrollIntoView({ block: 'center', behavior: 'auto' });
         }
     });

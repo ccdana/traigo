@@ -1,6 +1,6 @@
 {{-- Avisos de la última acción: lo que salió bien y lo que hay que corregir. --}}
 @if (session('status'))
-    <p role="status" {{ $attributes->merge(['class' => 'border-l-4 border-brand bg-soft px-4 py-3 text-sm']) }}>{{ session('status') }}</p>
+    <p role="status" data-feedback {{ $attributes->merge(['class' => 'border-l-4 border-brand bg-soft px-4 py-3 text-sm']) }}>{{ session('status') }}</p>
 @endif
 
 @if ($errors->any())

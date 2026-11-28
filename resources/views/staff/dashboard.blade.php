@@ -2,79 +2,148 @@
 @use('App\Services\Store\DeliveryLocations')
 
 <x-layouts.staff title="Estadísticas">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-        <div><h1 class="text-3xl sm:text-4xl">Así va Traigo</h1><p class="mt-2 text-sm text-muted">Cobros, pedidos e inventario para tomar decisiones.</p></div>
+    <header class="dashboard-heading">
+        <div>
+            <h1>Estadísticas</h1>
+            <p>Cobros, pedidos e inventario de TRAIGO.</p>
+        </div>
         <a href="{{ route('store.home') }}" class="btn-soft">Ver tienda</a>
-    </div>
+    </header>
     <x-flash class="mt-4" />
-    <form method="GET" class="mt-6 flex flex-wrap items-end gap-3 border-b-2 border-ink pb-5">
-        <div><label for="from" class="block text-sm">Desde</label><input class="field" type="date" id="from" name="from" value="{{ $from->toDateString() }}" max="{{ today()->toDateString() }}" required></div>
-        <div><label for="until" class="block text-sm">Hasta</label><input class="field" type="date" id="until" name="until" value="{{ $until->toDateString() }}" max="{{ today()->toDateString() }}" required></div>
-        <div><label for="channel" class="block text-sm">Canal</label><select id="channel" name="channel" class="field">
-            @foreach (['all' => 'Todos los canales', 'web' => 'Tienda web', 'team' => 'Ventas del equipo'] as $value => $label)
-                <option value="{{ $value }}" @selected($channel === $value)>{{ $label }}</option>
-            @endforeach
-        </select></div>
-        <button type="submit" class="btn-primary">Ver período</button>
+
+    <form method="GET" class="dashboard-period" aria-label="Filtros de estadísticas">
+        <div>
+            <label for="from">Desde</label>
+            <input class="field" type="date" id="from" name="from" value="{{ $from->toDateString() }}" max="{{ today()->toDateString() }}" required>
+        </div>
+        <div>
+            <label for="until">Hasta</label>
+            <input class="field" type="date" id="until" name="until" value="{{ $until->toDateString() }}" max="{{ today()->toDateString() }}" required>
+        </div>
+        <div class="dashboard-period-channel">
+            <label for="channel">Canal</label>
+            <select id="channel" name="channel" class="field">
+                @foreach (['all' => 'Todos los canales', 'web' => 'Tienda web', 'team' => 'Ventas del equipo'] as $value => $label)
+                    <option value="{{ $value }}" @selected($channel === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <button type="submit" class="btn-primary">Aplicar filtros</button>
     </form>
 
-    <dl class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        @foreach ([['Cobrado y confirmado', Money::display($collectedCents), $paidCount.' pedidos con pago confirmado'], ['Pedidos recibidos', $ordersCount, $cancelledCount.' anulados, devueltos o vencidos'], ['Unidades entregadas', $deliveredUnits, 'Según la fecha de entrega'], ['Pagos por revisar', $pending->review, 'Pendientes ahora, de cualquier fecha']] as [$label, $value, $detail])
-            <div class="border-l-4 border-brand bg-white p-5"><dt class="text-sm text-muted">{{ $label }}</dt><dd class="mt-2 font-display text-3xl font-bold tabular-nums">{{ $value }}</dd><dd class="mt-2 text-xs text-muted">{{ $detail }}</dd></div>
-        @endforeach
-    </dl>
+    <div class="dashboard-overview">
+        <section class="dashboard-collection" aria-labelledby="collected-title">
+            <h2 id="collected-title">Cobrado y confirmado</h2>
+            <p class="dashboard-total">{{ Money::display($collectedCents) }}</p>
+            <p>{{ $paidCount }} {{ $paidCount === 1 ? 'pedido con pago confirmado' : 'pedidos con pago confirmado' }}</p>
+        </section>
+        <dl class="dashboard-summary">
+            <div><dt>Pedidos recibidos</dt><dd>{{ $ordersCount }}</dd><dd>{{ $cancelledCount }} {{ $cancelledCount === 1 ? 'anulado, devuelto o vencido' : 'anulados, devueltos o vencidos' }}</dd></div>
+            <div><dt>Unidades entregadas</dt><dd>{{ $deliveredUnits }}</dd><dd>Según la fecha de entrega</dd></div>
+            <div @if ($pending->review > 0) data-needs-review @endif><dt>Pagos por revisar</dt><dd>{{ $pending->review }}</dd><dd>Pendientes de cualquier fecha</dd></div>
+        </dl>
+    </div>
 
-    <div class="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)]">
-        <section class="min-w-0 bg-white p-5" aria-labelledby="daily-title">
-            <h2 id="daily-title" class="text-xl">Cobros por día</h2>
-            <p class="mt-1 text-xs text-muted">Solo pagos confirmados, según cuándo llegó el dinero. Excluye devoluciones.</p>
+    <div class="dashboard-columns">
+        <section class="dashboard-panel" aria-labelledby="daily-title">
+            <header class="dashboard-panel-header">
+                <h2 id="daily-title">Cobros por día</h2>
+                <p>Pagos confirmados según la fecha de recepción. Excluye devoluciones.</p>
+            </header>
             @if ($collectedCents === 0)
-                <p class="py-12 text-center text-sm text-muted">Todavía no hay cobros confirmados en este período.</p>
+                <div class="dashboard-chart-empty">
+                    <p>Todavía no hay cobros confirmados en este período.</p>
+                </div>
             @else
-                <div class="mt-6 overflow-x-auto" tabindex="0" aria-label="Gráfico de cobros diarios; detalle en la tabla inferior">
-                    <div class="flex h-44 items-end gap-1 border-b border-line" style="min-width: {{ max(300, count($days) * 12) }}px" aria-hidden="true">
-                        @foreach ($days as $day)
-                            <div class="flex-1 bg-brand hover:bg-cyan" style="height: {{ $day['cents'] > 0 ? max(2, round($day['cents'] / $peakCents * 100)) : 0 }}%" title="{{ $day['label'] }}: {{ Money::display($day['cents']) }}"></div>
-                        @endforeach
+                <div class="dashboard-chart" aria-hidden="true">
+                    <ol class="dashboard-chart-scale">
+                        <li>{{ Money::display($peakCents) }}</li>
+                        <li>{{ Money::display((int) round($peakCents / 2)) }}</li>
+                        <li>Bs 0</li>
+                    </ol>
+                    <div class="dashboard-chart-scroll">
+                        <div class="dashboard-chart-plot" style="--plot-width: {{ max(220, count($days) * 8) }}px">
+                            <div class="dashboard-chart-bars">
+                                @foreach ($days as $day)
+                                    <div style="--bar-height: {{ $day['cents'] > 0 ? max(2, round($day['cents'] / $peakCents * 100)) : 0 }}%" title="{{ $day['label'] }}: {{ Money::display($day['cents']) }}"></div>
+                                @endforeach
+                            </div>
+                            <div class="dashboard-chart-period"><span>{{ $from->format('d/m/Y') }}</span><span>{{ $until->format('d/m/Y') }}</span></div>
+                        </div>
                     </div>
                 </div>
-                <p class="mt-2 flex justify-between text-xs text-muted"><span>{{ $from->format('d/m/Y') }}</span><span>{{ $until->format('d/m/Y') }}</span></p>
-                <details class="mt-4 text-sm"><summary class="cursor-pointer text-brand">Ver importes por día</summary><div class="mt-2 max-h-64 overflow-auto"><table class="w-full text-left"><caption class="sr-only">Cobros confirmados por fecha</caption><thead><tr><th>Fecha</th><th class="text-right">Cobrado</th></tr></thead><tbody>
-                    @foreach ($days as $day)<tr class="border-t border-line"><td class="py-2">{{ $day['date'] }}</td><td class="text-right">{{ Money::display($day['cents']) }}</td></tr>@endforeach
-                </tbody></table></div></details>
+                <details class="dashboard-chart-detail">
+                    <summary>Ver importes por día</summary>
+                    <div class="max-h-64 overflow-auto">
+                        <table class="dashboard-table">
+                            <caption class="sr-only">Cobros confirmados por fecha</caption>
+                            <thead><tr><th scope="col">Fecha</th><th scope="col" class="text-right">Cobrado</th></tr></thead>
+                            <tbody>
+                                @foreach ($days as $day)
+                                    <tr><td>{{ $day['date'] }}</td><td class="text-right">{{ Money::display($day['cents']) }}</td></tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             @endif
         </section>
-        <section class="border-t-2 border-ink pt-4" aria-labelledby="stock-title">
-            <h2 id="stock-title" class="text-xl">Inventario ahora</h2>
-            <p class="mt-1 text-xs text-muted">Stock global de todos los canales; no depende del período.</p>
-            <dl class="mt-4 divide-y divide-line text-sm">
+
+        <section class="dashboard-panel dashboard-stock" aria-labelledby="stock-title">
+            <header class="dashboard-panel-header">
+                <h2 id="stock-title">Inventario ahora</h2>
+                <p>Stock global de todos los canales.</p>
+            </header>
+            <dl>
                 @foreach (['En almacén' => $stock->stock, 'Reservadas' => $stock->reserved, 'Disponibles' => $stock->available, 'Productos agotados' => $stock->out_of_stock, 'Productos con stock bajo' => $stock->low_stock] as $label => $value)
-                    <div class="flex justify-between py-2"><dt>{{ $label }}</dt><dd class="font-mono font-semibold">{{ $value }}</dd></div>
+                    <div><dt>{{ $label }}</dt><dd>{{ $value }}</dd></div>
                 @endforeach
             </dl>
-            <a href="{{ route('staff.inventory.index') }}" class="btn-dark mt-4 w-full">Ver inventario</a>
-            <a href="{{ route('staff.promotions.index') }}" class="btn-soft mt-2 w-full">Ver ofertas</a>
+            <div class="dashboard-stock-actions">
+                <a href="{{ route('staff.inventory.index') }}" class="btn-dark">Ver inventario</a>
+                <a href="{{ route('staff.promotions.index') }}" class="btn-soft">Ver ofertas</a>
+            </div>
         </section>
     </div>
 
-    <section class="mt-8" aria-labelledby="top-title">
-        <h2 id="top-title" class="text-xl">Productos más entregados</h2>
-        <div class="mt-4 overflow-x-auto bg-white"><table class="w-full text-left text-sm"><caption class="sr-only">Productos entregados durante el período seleccionado</caption><thead class="border-b-2 border-ink"><tr><th class="p-3">Producto</th><th class="p-3 text-right">Unidades</th><th class="p-3 text-right">Importe</th></tr></thead><tbody>
-            @forelse ($topProducts as $product)<tr class="border-b border-line"><td class="p-3">{{ $product->name }} <span class="text-xs text-muted">{{ $product->item_code }}</span></td><td class="p-3 text-right">{{ $product->units }}</td><td class="p-3 text-right">{{ Money::display(Money::toCents($product->amount)) }}</td></tr>
-            @empty<tr><td colspan="3" class="p-6 text-muted">No hay entregas en este período.</td></tr>@endforelse
-        </tbody></table></div>
-    </section>
-
-    <section class="mt-8" aria-labelledby="deliveries-title">
-        <h2 id="deliveries-title" class="text-xl">Delivery por entregar</h2>
-        <p class="mt-1 text-sm text-muted">Pedidos pagados o listos del canal seleccionado, de cualquier fecha. Hasta 20, empezando por el más antiguo.</p>
-        <ul class="mt-4 grid gap-3 md:grid-cols-2">
-            @forelse ($deliveries as $delivery)
-                <li class="bg-white p-4"><p class="font-semibold">{{ $delivery->order_number }} · {{ $delivery->customer_name }}</p><p class="mt-1 text-sm">{{ $delivery->address ?? $delivery->shipping_address }}</p>
-                    @if ($delivery->reference)<p class="mt-1 text-sm text-muted">Referencia: {{ $delivery->reference }}</p>@endif
-                    @if ($delivery->latitude !== null)<a href="{{ DeliveryLocations::mapUrl($delivery->latitude, $delivery->longitude) }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-sm text-brand underline">Abrir punto de entrega</a>@endif
-                </li>
-            @empty<li class="text-sm text-muted">No hay delivery pendiente de entrega.</li>@endforelse
-        </ul>
-    </section>
+    <div class="dashboard-columns">
+        <section class="dashboard-panel" aria-labelledby="top-title">
+            <header class="dashboard-panel-header">
+                <h2 id="top-title">Productos más entregados</h2>
+            </header>
+            @if ($topProducts->isEmpty())
+                <p class="dashboard-empty">No hay entregas en este período.</p>
+            @else
+                <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabla de productos más entregados">
+                    <table class="dashboard-table">
+                        <caption class="sr-only">Productos entregados durante el período seleccionado</caption>
+                        <thead><tr><th scope="col">Producto</th><th scope="col" class="text-right">Unidades</th><th scope="col" class="text-right">Importe</th></tr></thead>
+                        <tbody>
+                            @foreach ($topProducts as $product)
+                                <tr><td>{{ $product->name }} <small>{{ $product->item_code }}</small></td><td class="text-right">{{ $product->units }}</td><td class="text-right">{{ Money::display(Money::toCents($product->amount)) }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+        <section class="dashboard-panel" aria-labelledby="deliveries-title">
+            <header class="dashboard-panel-header">
+                <h2 id="deliveries-title">Delivery por entregar</h2>
+                <p>Hasta 20 pedidos pagados o listos del canal seleccionado, desde el más antiguo.</p>
+            </header>
+            <ul class="dashboard-deliveries">
+                @forelse ($deliveries as $delivery)
+                    <li>
+                        <p><strong>{{ $delivery->order_number }}</strong> {{ $delivery->customer_name }}</p>
+                        <p>{{ $delivery->address ?? $delivery->shipping_address }}</p>
+                        @if ($delivery->reference)<p>Referencia: {{ $delivery->reference }}</p>@endif
+                        @if ($delivery->latitude !== null)<a href="{{ DeliveryLocations::mapUrl($delivery->latitude, $delivery->longitude) }}" target="_blank" rel="noopener noreferrer">Abrir punto de entrega</a>@endif
+                    </li>
+                @empty
+                    <li class="dashboard-empty">No hay delivery pendiente de entrega.</li>
+                @endforelse
+            </ul>
+        </section>
+    </div>
 </x-layouts.staff>

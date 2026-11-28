@@ -54,9 +54,12 @@ stock disponible para recibir pedidos.
 
 ### Tienda y administración web
 
-La web admite clientes y Dirección. El cliente entra por `/ingresar` y usa
-`/carrito`; Dirección entra por `/equipo/ingresar` con su código, PIN y segundo
-factor. Los demás roles conservan sus accesos y operaciones en la API móvil.
+La web admite clientes y Dirección. En `/registro`, el cliente confirma su
+correo con un código de seis dígitos antes de que se cree la cuenta. Luego
+ingresa por `/ingresar` con su correo y contraseña. Dirección entra por
+`/equipo/ingresar` con su clave actual. La web identifica internamente a
+`DIR-08` (configurable mediante `TRAIGO_WEB_ADMIN_CODE`) y no le envía un
+código. La API móvil conserva su ingreso y segundo paso.
 El enlace anterior `/bolsa` redirige al carrito.
 
 En `/equipo/estadisticas`, Dirección consulta cobros confirmados, pedidos,
@@ -114,8 +117,9 @@ usa la IP de tu PC):
 flutter run --dart-define=API_MODE=live --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
-Con `MAIL_MAILER=log`, el código de Jime y Dirección se lee en
-`storage/logs/laravel.log`.
+Con `MAIL_MAILER=log`, los códigos de registro de clientes y los del segundo
+paso de la app se leen en `storage/logs/laravel.log`. Para que lleguen a la
+bandeja de correo, configura un transportador real en `MAIL_*`.
 
 La caja diaria empieza el **1 de diciembre de 2026** (primer día de la
 campaña). Antes, «Caja» muestra lo cobrado hoy, pero al enviarla responde «Ese
