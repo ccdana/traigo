@@ -5,6 +5,7 @@
  * en el contrato (repositorio de la app, `docs/api-contract.md`).
  */
 
+use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\AuthorizationController;
 use App\Http\Controllers\Api\V1\CashController;
@@ -30,6 +31,8 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('me/attendance', [AttendanceController::class, 'index']);
+    Route::post('me/attendance', [AttendanceController::class, 'store'])->withoutMiddleware('idempotent');
 
     // Inicio, equipo y «Mi semana»: los integrantes, cada quien lo suyo.
     Route::middleware('member')->group(function () {
