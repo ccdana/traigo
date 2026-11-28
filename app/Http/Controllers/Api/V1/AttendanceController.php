@@ -11,15 +11,26 @@ final class AttendanceController
 {
     public function index(Request $request, Attendance $attendance): JsonResponse
     {
-        return response()->json(['data' => $attendance->shifts($request->user())])
+        return response()->json(['data' => $attendance->status($request->user())])
             ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function configure(Request $request, Attendance $attendance): JsonResponse
+    {
+        $point = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-85,85'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        return response()->json(['data' => $attendance->configure(
+            $request->user(), (float) $point['latitude'], (float) $point['longitude'],
+        )])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(Request $request, Attendance $attendance): JsonResponse
     {
         $key = ClientKey::require($request);
         $input = $request->validate([
-            'assignment_id' => ['required', 'integer', 'min:1'],
             'kind' => ['required', 'in:entry,exit'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

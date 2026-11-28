@@ -98,8 +98,7 @@ class EvidenceTest extends CampaignTestCase
             ->assertJsonPath('message', 'Ese pedido está anulado.');
 
         $this->send($this->resultId('AIL-02', 'LIVES realizados'), ['kind' => 'order', 'order_id' => $theirs], 'AIL-02')
-            ->assertUnprocessable()
-            ->assertJsonPath('message', 'Solo quienes venden adjuntan pedidos.');
+            ->assertNotFound();
     }
 
     #[Test]

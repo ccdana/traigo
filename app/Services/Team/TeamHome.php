@@ -47,7 +47,7 @@ final class TeamHome
      *
      * @return array{amount: ?string, pay_note: ?string}
      */
-    private static function monthCommission(User $seller): array
+    public static function monthCommission(User $seller): array
     {
         $earned = DB::table('v_commission_sources')
             ->where('seller_id', $seller->getKey())

@@ -3,8 +3,10 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Order;
+use App\Services\Control\Commissions;
 use Database\Seeders\LocalStockSeeder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -173,12 +175,19 @@ class OrdersTest extends SalesTestCase
     }
 
     #[Test]
-    public function solo_venden_quienes_venden(): void
+    public function todo_el_equipo_vende_y_solo_ve_sus_pedidos_y_comisiones(): void
     {
+        DB::table('products')->where('item_code', '8107')->update(['commission_pct' => 5]);
         foreach (['ISA-03', 'AIL-02', 'SIS-06', 'JIM-01', 'DIR-08'] as $code) {
-            $this->sell($this->sale(), $code)->assertForbidden();
-            $this->api($code)->getJson('/api/v1/orders')->assertForbidden();
+            $order = $this->sell($this->sale(), $code)->assertCreated()->json('data.id');
+            $this->api($code)->getJson('/api/v1/orders')->assertOk()->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.id', $order);
+            $this->api('ALI-04')->getJson("/api/v1/orders/{$order}")->assertNotFound();
+            $this->api($code)->getJson('/api/v1/me/commissions')->assertOk()->assertJsonPath('data.amount', '0.00');
+            Commissions::earn($order, now());
+            $this->api($code)->getJson('/api/v1/me/commissions')->assertOk()->assertJsonPath('data.amount', '8.70');
         }
+        $this->api('ALI-04')->getJson('/api/v1/me/commissions')->assertOk()->assertJsonPath('data.amount', '0.00');
 
         $this->sell($this->sale(), 'KIM-05')->assertCreated();
     }

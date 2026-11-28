@@ -2,6 +2,7 @@
 
 namespace App\Services\Attendance;
 
+use App\Enums\UserRole;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Support\Dates;
@@ -10,35 +11,89 @@ use Illuminate\Support\Facades\DB;
 
 final class Attendance
 {
-    public function shifts(User $user): array
+    public const SITE_CODE = 'PRINCIPAL';
+
+    private const RADIUS_M = 50;
+
+    private const MAX_ACCURACY_M = 30;
+
+    public function status(User $user): array
     {
         $now = now();
-        $shifts = DB::table('attendance_assignments as a')
-            ->join('attendance_sites as s', 's.id_site', '=', 'a.site_id')
-            ->where('a.user_id', $user->getKey())
-            ->where('a.ends_at', '>=', $now->copy()->subDays(14))
-            ->where('a.starts_at', '<=', $now->copy()->addDay())
-            ->orderByRaw('CASE WHEN a.starts_at <= ? AND a.ends_at >= ? AND a.cancelled_at IS NULL THEN 0 ELSE 1 END', [$now, $now])
-            ->orderByDesc('a.starts_at')
-            ->limit(100)
-            ->get(['a.*', 's.name as site']);
-        $marks = DB::table('attendance_marks')->whereIn('assignment_id', $shifts->pluck('id_assignment'))
-            ->get()->groupBy('assignment_id');
+        $fence = $this->currentFence($now);
+        $canConfigure = self::canConfigure($user);
+        $marks = DB::table('attendance_attempts')->where('actor_id', $user->getKey())
+            ->where('outcome', 'accepted')->where('business_date', $now->toDateString())
+            ->orderByDesc('received_at')->get()->groupBy('kind');
 
-        return $shifts->map(function (object $shift) use ($now, $marks): array {
-            $recorded = $marks->get($shift->id_assignment, collect())->keyBy('kind');
+        return [
+            'date' => $now->toDateString(),
+            'site' => $fence?->site_name,
+            'can_configure' => $canConfigure,
+            'radius_m' => self::RADIUS_M,
+            'max_accuracy_m' => self::MAX_ACCURACY_M,
+            'center' => $canConfigure && $fence !== null ? [
+                'latitude' => (float) $fence->center_latitude,
+                'longitude' => (float) $fence->center_longitude,
+            ] : null,
+            'entry_at' => Dates::toApi($marks->get('entry')?->first()?->received_at),
+            'exit_at' => Dates::toApi($marks->get('exit')?->first()?->received_at),
+        ];
+    }
 
-            return [
-                'id' => (string) $shift->id_assignment,
-                'site' => $shift->site,
-                'starts_at' => Dates::toApi($shift->starts_at),
-                'ends_at' => Dates::toApi($shift->ends_at),
-                'active' => self::active($shift, $now),
-                'cancelled' => $shift->cancelled_at !== null && Carbon::parse($shift->cancelled_at)->lte($now),
-                'entry_at' => Dates::toApi($recorded->get('entry')?->marked_at),
-                'exit_at' => Dates::toApi($recorded->get('exit')?->marked_at),
-            ];
-        })->all();
+    public function configure(User $user, float $latitude, float $longitude): array
+    {
+        if (! self::canConfigure($user)) {
+            throw ApiException::forbidden('Solo Jimena y Miguel pueden configurar la sede.');
+        }
+
+        return DB::transaction(function () use ($user, $latitude, $longitude): array {
+            DB::table('attendance_sites')->insertOrIgnore(['code' => self::SITE_CODE, 'name' => 'Sede principal']);
+            $site = DB::table('attendance_sites')->where('code', self::SITE_CODE)->lockForUpdate()->first();
+            $now = now();
+            $existing = $this->currentFence($now);
+            if ($existing !== null && (float) $existing->center_latitude === round($latitude, 6)
+                && (float) $existing->center_longitude === round($longitude, 6)
+                && (float) $existing->radius_m === (float) self::RADIUS_M
+                && (float) $existing->max_accuracy_m === (float) self::MAX_ACCURACY_M
+                && $existing->edge_rule === 'center_within') {
+                return $this->status($user);
+            }
+            $policy = DB::table('attendance_policies')->insertGetId([
+                'max_accuracy_m' => self::MAX_ACCURACY_M,
+                'max_fix_age_seconds' => 90,
+                'edge_rule' => 'center_within',
+                'created_by' => $user->getKey(),
+            ], 'id_policy');
+            DB::table('attendance_geofences')->insert([
+                'site_id' => $site->id_site,
+                'policy_id' => $policy,
+                'center_latitude' => $latitude,
+                'center_longitude' => $longitude,
+                'radius_m' => self::RADIUS_M,
+                'valid_from' => self::timestamp($now),
+                'created_by' => $user->getKey(),
+            ]);
+
+            return $this->status($user);
+        });
+    }
+
+    private static function canConfigure(User $user): bool
+    {
+        return in_array($user->role, [UserRole::Control, UserRole::Management], true);
+    }
+
+    private function currentFence(Carbon $now): ?object
+    {
+        return DB::table('attendance_geofences as g')
+            ->join('attendance_sites as s', 's.id_site', '=', 'g.site_id')
+            ->join('attendance_policies as p', 'p.id_policy', '=', 'g.policy_id')
+            ->where('s.code', self::SITE_CODE)->where('g.valid_from', '<=', self::timestamp($now))
+            ->orderByDesc('g.valid_from')->first([
+                'g.id_geofence', 'g.radius_m', 'g.center_latitude', 'g.center_longitude',
+                's.name as site_name', 'p.edge_rule', 'p.max_accuracy_m', 'p.max_fix_age_seconds',
+            ]);
     }
 
     public function mark(User $user, string $clientKey, array $input): array
@@ -49,32 +104,27 @@ final class Attendance
         return DB::transaction(function () use ($actor, $clientKey, $input, $received): array {
             // La clave persiste aunque se reinicie la API o se venza la caché.
             DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ["attendance:{$actor}"]);
-            $shift = DB::table('attendance_assignments')->where('user_id', $actor)
-                ->where('id_assignment', $input['assignment_id'])->sharedLock()->first()
-                ?? throw ApiException::notFound('No encontramos ese turno entre tus asignaciones.');
             $kind = $input['kind'];
             $attempt = DB::table('attendance_attempts')->where('actor_id', $actor)->where('client_uuid', $clientKey)->first();
 
             if ($attempt !== null) {
-                if ((string) $attempt->assignment_id !== (string) $shift->id_assignment || $attempt->kind !== $kind) {
+                if ($attempt->kind !== $kind) {
                     throw ApiException::conflict('idempotency_conflict', 'Esa clave ya se usó para otra marcación.');
                 }
 
                 return self::result($attempt->outcome, $attempt->received_at, $attempt->rejection_reason);
             }
 
-            $marks = DB::table('attendance_marks')->where('assignment_id', $shift->id_assignment)->pluck('marked_at', 'kind');
+            $marks = DB::table('attendance_attempts')->where('actor_id', $actor)
+                ->where('outcome', 'accepted')->where('business_date', $received->toDateString())
+                ->orderBy('received_at')->pluck('received_at', 'kind');
             if ($marks->has($kind)) {
                 return self::result('accepted', $marks->get($kind), null);
             }
 
             $fix = Carbon::parse($input['captured_at']);
-            $fence = DB::table('attendance_geofences as g')->join('attendance_policies as p', 'p.id_policy', '=', 'g.policy_id')
-                ->where('g.site_id', $shift->site_id)->where('g.valid_from', '<=', self::timestamp($received))
-                ->orderByDesc('g.valid_from')->first([
-                    'g.id_geofence', 'g.radius_m', 'g.center_latitude', 'g.center_longitude',
-                    'p.edge_rule', 'p.max_accuracy_m', 'p.max_fix_age_seconds',
-                ]);
+            DB::table('attendance_sites')->where('code', self::SITE_CODE)->sharedLock()->first();
+            $fence = $this->currentFence($received);
             $accuracy = max(0.001, round((float) $input['accuracy_m'], 3));
             $distance = $fence === null ? null : round(self::distance(
                 (float) $input['latitude'], (float) $input['longitude'],
@@ -82,12 +132,11 @@ final class Attendance
             ), 3);
             $testedDistance = $distance + ($fence?->edge_rule === 'accuracy_within' ? $accuracy : 0);
             $reason = match (true) {
-                ! self::active($shift, $received) => 'outside_shift',
                 $kind === 'exit' && (! $marks->has('entry') || Carbon::parse($marks->get('entry'))->gt($received)) => 'entry_required',
                 $fence === null => 'site_unconfigured',
                 $fix->gt($received) || $fix->lt($received->copy()->subSeconds((int) $fence->max_fix_age_seconds)) => 'stale_location',
-                $accuracy > (float) $fence->max_accuracy_m => 'poor_accuracy',
-                round($testedDistance, 3) > (float) $fence->radius_m => 'outside_site',
+                $accuracy > min(self::MAX_ACCURACY_M, (float) $fence->max_accuracy_m) => 'poor_accuracy',
+                $distance > self::RADIUS_M || round($testedDistance, 3) > (float) $fence->radius_m => 'outside_site',
                 default => null,
             };
             $outcome = $reason === null ? 'accepted' : 'rejected';
@@ -96,7 +145,6 @@ final class Attendance
             DB::table('attendance_attempts')->insert([
                 'actor_id' => $actor,
                 'client_uuid' => $clientKey,
-                'assignment_id' => $shift->id_assignment,
                 'geofence_id' => $fence?->id_geofence,
                 'kind' => $kind,
                 'received_at' => self::timestamp($received),
@@ -109,12 +157,6 @@ final class Attendance
 
             return self::result($outcome, $received, $reason);
         });
-    }
-
-    private static function active(object $shift, Carbon $now): bool
-    {
-        return $now->betweenIncluded(Carbon::parse($shift->starts_at), Carbon::parse($shift->ends_at))
-            && ($shift->cancelled_at === null || $now->lt(Carbon::parse($shift->cancelled_at)));
     }
 
     private static function timestamp(Carbon $date): string
@@ -138,8 +180,7 @@ final class Attendance
             'marked_at' => $outcome === 'accepted' ? Dates::toApi($received) : null,
             'reason' => $reason,
             'message' => match ($reason) {
-                'outside_shift' => 'Tu turno no está abierto para marcar asistencia.',
-                'entry_required' => 'Primero marca la entrada de este turno.',
+                'entry_required' => 'Primero marca la entrada de hoy.',
                 'site_unconfigured' => 'La sede aún no tiene un rango de asistencia configurado.',
                 'stale_location' => 'La ubicación ya no está vigente. Vuelve a marcar y revisa la hora del teléfono.',
                 'poor_accuracy' => 'La ubicación es demasiado imprecisa. Activa la ubicación precisa y vuelve a intentar.',

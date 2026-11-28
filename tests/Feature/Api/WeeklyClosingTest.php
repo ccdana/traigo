@@ -50,8 +50,8 @@ class WeeklyClosingTest extends ControlTestCase
         ]);
         $this->assertSame(['fails', null], [$rows['Kim']['compliance'], $rows['Kim']['deliverables_total']]);
         $this->assertSame([null, 'pending', 0, 4], [
-            $rows['Sistemas 1']['score_percent'], $rows['Sistemas 1']['compliance'],
-            $rows['Sistemas 1']['deliverables_on_time'], $rows['Sistemas 1']['deliverables_total'],
+            $rows['Dana']['score_percent'], $rows['Dana']['compliance'],
+            $rows['Dana']['deliverables_on_time'], $rows['Dana']['deliverables_total'],
         ]);
 
         $this->travelTo('2026-12-09 10:00:00');
@@ -101,12 +101,12 @@ class WeeklyClosingTest extends ControlTestCase
 
         $this->control('weekly-closing')->assertJsonPath('data.pending_members', [
             ['id' => $this->member('KIM-05')->getKey(), 'name' => 'Kim', 'pending_reason' => 'Faltan 6 valores reales'],
-            ['id' => $this->member('SIS-07')->getKey(), 'name' => 'Sistemas 2', 'pending_reason' => '0 de 4 entregas validadas'],
+            ['id' => $this->member('SIS-07')->getKey(), 'name' => 'Brandon', 'pending_reason' => '0 de 4 entregas validadas'],
         ]);
         $this->sendWeek()
             ->assertConflict()
             ->assertJsonPath('code', 'pending_members')
-            ->assertJsonPath('message', 'Kim y Sistemas 2 siguen pendientes.');
+            ->assertJsonPath('message', 'Kim y Brandon siguen pendientes.');
         $this->sendWeek(closePending: ['ALI-04' => 'x'])
             ->assertUnprocessable()->assertJsonPath('code', 'not_pending');
         $this->sendWeek(closePending: ['KIM-05' => ' ', 'SIS-07' => 'Sin entregas'])
@@ -192,12 +192,12 @@ class WeeklyClosingTest extends ControlTestCase
     {
         $this->readyToClose(except: ['SIS-07']);
         $this->sendWeek(closePending: ['SIS-07' => 'Sin sus valores'])->assertOk();
-        $this->directionReturns('Carga los valores de Sistemas 2');
+        $this->directionReturns('Carga los valores de Brandon');
 
         $this->control('weekly-closing')
             ->assertJsonPath('data.status', 'returned')
-            ->assertJsonPath('data.return_reason', 'Carga los valores de Sistemas 2')
-            ->assertJsonPath('data.pending_members.0.name', 'Sistemas 2');
+            ->assertJsonPath('data.return_reason', 'Carga los valores de Brandon')
+            ->assertJsonPath('data.pending_members.0.name', 'Brandon');
 
         $this->loadActuals('SIS-07');
         $this->sendWeek()->assertOk()->assertJsonPath('data.status', 'sent')->assertJsonPath('data.return_reason', null);

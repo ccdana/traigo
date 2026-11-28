@@ -80,6 +80,9 @@ class ControlOrders
     {
         DB::transaction(function () use ($jime, $orderId, $reason) {
             $order = $this->lock($orderId);
+            if ($order->seller_id === $jime->getKey()) {
+                throw ApiException::conflict('own_record', 'Nadie valida la devolución de un pedido propio.');
+            }
 
             if (! self::canReturn($order)) {
                 throw ApiException::conflict('invalid_status', 'Este pedido no se puede devolver.');
@@ -125,6 +128,9 @@ class ControlOrders
             // Siempre en el mismo orden, para que dos anulaciones no se traben.
             Order::query()->whereKey([$orderId, $originalId])->orderBy('id_order')->lockForUpdate()->get();
             $order = $this->lock($orderId);
+            if ($order->seller_id === $jime->getKey()) {
+                throw ApiException::conflict('own_record', 'Nadie marca como duplicado un pedido propio.');
+            }
 
             if (! self::canMarkDuplicate($order)) {
                 throw ApiException::conflict(

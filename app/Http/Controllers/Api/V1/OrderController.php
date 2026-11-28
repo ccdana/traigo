@@ -10,6 +10,7 @@ use App\Services\Sales\CancelSale;
 use App\Services\Sales\CreateSale;
 use App\Services\Sales\OwnOrders;
 use App\Services\Sales\SubmitProof;
+use App\Services\Team\TeamHome;
 use App\Support\ClientKey;
 use App\Support\Responses;
 use Illuminate\Http\JsonResponse;
@@ -45,6 +46,12 @@ class OrderController extends Controller
     public function show(Request $request, string $order): JsonResponse
     {
         return $this->detail(OwnOrders::find($request->user(), $order));
+    }
+
+    public function commissions(Request $request): JsonResponse
+    {
+        return response()->json(['data' => TeamHome::monthCommission($request->user())])
+            ->header('Cache-Control', 'private, no-store');
     }
 
     public function store(NewSaleRequest $request, CreateSale $sales): JsonResponse

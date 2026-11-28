@@ -202,29 +202,24 @@ Cada semana nueva requiere su política y sus integrantes explícitos.
 Antes de publicar una nueva política, crear otro código y sus escalones
 para preservar las condiciones de semanas ya asignadas.
 
-## Asistencia del equipo
+## Asistencia y ventas del equipo
 
-En **Inicio → Asistencia** (o **Más → Asistencia** para Jime y Dirección), la
-persona ve sus turnos recientes y puede marcar entrada y salida durante el
-turno. La app pide una lectura puntual al seleccionar la acción. La API
-verifica la vigencia, la precisión y la distancia a la sede. El servidor
-registra la hora y el resultado, sin guardar las coordenadas del teléfono.
+En **Inicio → Asistencia** o **Más → Asistencia** se registra una entrada y
+una salida propias por día, en hora de Bolivia. No hay turnos que asignar.
+El servidor comprueba que la ubicación esté a 50 m o menos de la sede y que
+la imprecisión del GPS no supere 30 m. Conserva el resultado y la hora,
+sin guardar las coordenadas del teléfono.
 
-Desde la consola del servidor, configura la sede con sus coordenadas reales
-y asigna los turnos en hora de Bolivia. En el primer comando, reemplaza
-`LATITUD` y `LONGITUD` por números decimales. El código final identifica a
-la persona responsable de la configuración.
+Jimena y Miguel pueden abrir **Asistencia → Configurar sede**, elegir el
+centro en el mapa o usar su ubicación actual y confirmar con **Guardar sede**.
+La nueva ubicación crea una versión del perímetro. Los clientes de la tienda
+no tienen acceso a estas funciones.
 
-```powershell
-php artisan traigo:asistencia-sede --precision=30 -- PRINCIPAL "Sede principal" LATITUD LONGITUD 100 JIM-01
-php artisan traigo:asistencia-turno ALI-04 PRINCIPAL "2026-12-01 08:00" "2026-12-01 17:00" JIM-01
-```
-
-El separador `--` permite pasar coordenadas negativas. Coloca las opciones
-antes de ese separador.
-Ejecutar de nuevo el comando de sede guarda una nueva versión del rango.
-Por defecto, la distancia más el margen de precisión deben caber dentro del
-radio. Los turnos pueden cruzar medianoche.
+Todas las cuentas del equipo pueden registrar ventas y consultar sus pedidos
+y comisiones. Las validaciones de pagos y las autorizaciones siguen separadas.
+Si un cierre de caja contiene cobros de quien lo revisa, otra cuenta de Control
+debe validarlos. Una liquidación que incluye comisiones propias requiere otra
+cuenta de Dirección.
 
 ## Pruebas
 

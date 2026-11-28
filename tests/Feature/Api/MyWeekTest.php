@@ -45,7 +45,7 @@ class MyWeekTest extends CampaignTestCase
         $this->api('SIS-06')->getJson('/api/v1/me/week')
             ->assertJsonCount(4, 'data.deliverables')
             ->assertJsonPath('data.deliverables.0.status', 'pending')
-            ->assertJsonPath('data.deliverables.0.member_name', 'Sistemas 1')
+            ->assertJsonPath('data.deliverables.0.member_name', 'Dana')
             ->assertJsonPath('data.deliverables.0.due_on', '2026-11-30')
             ->assertJsonPath('data.deliverables.0.evidence_url', null);
     }

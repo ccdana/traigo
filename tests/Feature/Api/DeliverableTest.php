@@ -49,7 +49,7 @@ class DeliverableTest extends CampaignTestCase
             ->assertJsonPath('data.status', 'in_review')
             ->assertJsonPath('data.delivered_on', '2026-11-30')
             ->assertJsonPath('data.evidence_url', 'https://traigo.bo/tienda')
-            ->assertJsonPath('data.member_name', 'Sistemas 1')
+            ->assertJsonPath('data.member_name', 'Dana')
             ->assertJsonPath('data.review_note', null);
 
         // En la base sigue pendiente hasta que Jime la valide.

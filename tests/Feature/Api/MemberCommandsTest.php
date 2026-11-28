@@ -14,7 +14,7 @@ class MemberCommandsTest extends ApiTestCase
         $token = $this->tokenFor('JIM-01');
 
         $this->artisan('traigo:pin', ['codigo' => 'jim-01'])
-            ->expectsQuestion('PIN nuevo de Jime (4 números)', '4821')
+            ->expectsQuestion('PIN nuevo de Jimena (4 números)', '4821')
             ->expectsQuestion('Repite el PIN', '4821')
             ->assertSuccessful();
 

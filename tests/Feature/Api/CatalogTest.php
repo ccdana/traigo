@@ -105,15 +105,14 @@ class CatalogTest extends SalesTestCase
     }
 
     #[Test]
-    public function la_comision_solo_la_ven_quienes_venden_jime_y_direccion(): void
+    public function todo_el_equipo_ve_la_tasa_del_catalogo(): void
     {
         $this->product('8107')->forceFill(['commission_pct' => 5])->save();
 
-        foreach (['ALI-04' => '5.00', 'KIM-05' => '5.00', 'JIM-01' => '5.00', 'DIR-08' => '5.00',
-            'ISA-03' => null, 'AIL-02' => null, 'SIS-06' => null] as $code => $expected) {
+        foreach (['ALI-04', 'KIM-05', 'JIM-01', 'DIR-08', 'ISA-03', 'AIL-02', 'SIS-06', 'SIS-07'] as $code) {
             $this->api($code)->getJson('/api/v1/catalog?search=8107')
                 ->assertOk()
-                ->assertJsonPath('data.0.commission_pct', $expected);
+                ->assertJsonPath('data.0.commission_pct', '5.00');
         }
     }
 }

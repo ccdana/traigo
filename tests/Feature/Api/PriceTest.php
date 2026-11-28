@@ -40,7 +40,7 @@ class PriceTest extends ControlTestCase
         $this->propose(['price_unit' => '89', 'price_wholesale' => '82.00', 'reason' => ' Subió el flete '])
             ->assertCreated()
             ->assertJsonPath('data.pending_change.proposed', ['price_unit' => '89.00'])
-            ->assertJsonPath('data.pending_change.requested_by', 'Jime')
+            ->assertJsonPath('data.pending_change.requested_by', 'Jimena')
             ->assertJsonPath('data.pending_change.reason', 'Subió el flete')
             ->assertJsonPath('data.current.price_unit', '87.00');
 

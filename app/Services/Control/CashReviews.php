@@ -66,9 +66,12 @@ class CashReviews
             ->where('method', PaymentMethod::Cash->value)
             ->where('status', PaymentStatus::Submitted->value)
             ->lockForUpdate()
-            ->get(['id_payment', 'order_id', 'submitted_at']);
+            ->get(['id_payment', 'order_id', 'submitted_at', 'submitted_by']);
 
         foreach ($payments as $payment) {
+            if ($payment->submitted_by === $jime->getKey()) {
+                throw ApiException::conflict('own_record', 'Otra cuenta de Control debe validar esta caja porque incluye cobros que registraste.');
+            }
             $received = Carbon::parse($payment->submitted_at)->timezone(config('app.timezone'));
             $week = WeekLock::weekOfDay($received->toDateString());
 

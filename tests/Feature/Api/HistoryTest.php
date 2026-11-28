@@ -42,8 +42,8 @@ class HistoryTest extends ControlTestCase
         $this->confirm($proof['payment']);
         $this->act("payments/{$rejected['payment']}/reject", ['reason' => 'Borroso'])->assertOk();
         $this->assertSame([
-            ['actor_name' => 'Jime', 'description' => 'Rechazó el comprobante de '.$this->number($rejected['order']).': Borroso'],
-            ['actor_name' => 'Jime', 'description' => 'Confirmó el pago '.$this->number($proof['order']).' (Bs 174)'],
+            ['actor_name' => 'Jimena', 'description' => 'Rechazó el comprobante de '.$this->number($rejected['order']).': Borroso'],
+            ['actor_name' => 'Jimena', 'description' => 'Confirmó el pago '.$this->number($proof['order']).' (Bs 174)'],
         ], array_slice($this->history(), 0, 2));
 
         $closing = $this->sendCash('2026-12-03');
@@ -56,12 +56,12 @@ class HistoryTest extends ControlTestCase
         $this->act("orders/{$rejected['order']}/duplicate", ['original_order_id' => $cash])->assertNoContent();
 
         $this->assertSame([
-            ['actor_name' => 'Jime', 'description' => 'Quitó '.$this->number($rejected['order']).' por duplicado de '.$this->number($cash)],
-            ['actor_name' => 'Jime', 'description' => 'Registró la devolución de '.$this->number($proof['order']).': Defecto'],
-            ['actor_name' => 'Jime', 'description' => 'Cargó el valor real de «Registro semanal de ventas» de Alison: sin cargar → 1,5'],
-            ['actor_name' => 'Jime', 'description' => 'Validó el cierre de caja del jueves 3 dic'],
+            ['actor_name' => 'Jimena', 'description' => 'Quitó '.$this->number($rejected['order']).' por duplicado de '.$this->number($cash)],
+            ['actor_name' => 'Jimena', 'description' => 'Registró la devolución de '.$this->number($proof['order']).': Defecto'],
+            ['actor_name' => 'Jimena', 'description' => 'Cargó el valor real de «Registro semanal de ventas» de Alison: sin cargar → 1,5'],
+            ['actor_name' => 'Jimena', 'description' => 'Validó el cierre de caja del jueves 3 dic'],
             ['actor_name' => 'Isaí', 'description' => 'Reenvió corregido el cierre de caja del jueves 3 dic'],
-            ['actor_name' => 'Jime', 'description' => 'Pidió corregir la caja del jueves 3 dic: Falta vuelto'],
+            ['actor_name' => 'Jimena', 'description' => 'Pidió corregir la caja del jueves 3 dic: Falta vuelto'],
             ['actor_name' => 'Isaí', 'description' => 'Envió el cierre de caja del jueves 3 dic'],
         ], array_slice($this->history(), 0, 7));
         $this->assertCount(11, $this->history());
@@ -90,9 +90,9 @@ class HistoryTest extends ControlTestCase
             'Marcó pagado el bono de Ailén (Bs 300)',
             'Autorizó el bono de la semana 1–6 dic (Bs 1.350)',
             'Envió el cierre de la semana 1–6 dic a Dirección',
-            'Cerró a Sistemas 2 como «no cumple»: Sin datos',
+            'Cerró a Brandon como «no cumple»: Sin datos',
         ], array_slice($lines, 0, 6));
-        $this->assertSame(['Dirección', 'Jime'], array_slice(array_column($this->history(), 'actor_name'), 0, 2));
+        $this->assertSame(['Miguel', 'Jimena'], array_slice(array_column($this->history(), 'actor_name'), 0, 2));
     }
 
     #[Test]
@@ -116,7 +116,7 @@ class HistoryTest extends ControlTestCase
             ['actor_name' => 'Isaí', 'description' => 'Hizo un conteo: 1 producto con diferencia'],
             ['actor_name' => 'Isaí', 'description' => 'Ajustó el stock de 8109: −2 (Rotas)'],
             ['actor_name' => 'Isaí', 'description' => 'Cargó el stock de 8109: +6'],
-            ['actor_name' => 'Jime', 'description' => 'No validó «Tienda web publicada, navegable y con catálogo» de Sistemas 1: No abre'],
+            ['actor_name' => 'Jimena', 'description' => 'No validó «Tienda web publicada, navegable y con catálogo» de Dana: No abre'],
         ], $this->history());
     }
 

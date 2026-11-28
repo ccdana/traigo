@@ -30,6 +30,7 @@ class CommissionAuthorization implements AuthorizationKind
             fn (array $member) => Money::toCents($member['adjustments']),
             $month['members'],
         ));
+        $includesOwn = $this->includesSeller($row->id_commission_settlement, auth()->id());
 
         return [
             ...$this->item($row),
@@ -43,8 +44,8 @@ class CommissionAuthorization implements AuthorizationKind
                 $adjustments === 0 ? null : 'Devoluciones descontadas: '.Money::display($adjustments),
             ])),
             'changes' => [],
-            'can_approve' => true,
-            'blocked_reason' => null,
+            'can_approve' => ! $includesOwn,
+            'blocked_reason' => $includesOwn ? 'Otra cuenta de Dirección debe autorizar esta liquidación porque incluye tus comisiones.' : null,
         ];
     }
 
@@ -56,6 +57,9 @@ class CommissionAuthorization implements AuthorizationKind
             if ($settlement->sent_by === $direction->getKey()) {
                 throw ApiException::conflict('own_record', 'Nadie autoriza lo que envió.');
             }
+            if ($this->includesSeller($settlement->id_commission_settlement, $direction->getKey())) {
+                throw ApiException::conflict('own_record', 'Otra cuenta de Dirección debe autorizar esta liquidación porque incluye tus comisiones.');
+            }
 
             $this->update($settlement, [
                 'status' => 'authorized',
@@ -63,6 +67,12 @@ class CommissionAuthorization implements AuthorizationKind
                 'authorized_at' => now(),
             ]);
         });
+    }
+
+    private function includesSeller(int $settlementId, ?string $sellerId): bool
+    {
+        return $sellerId !== null && DB::table('v_commission_sources')
+            ->where('settlement_id', $settlementId)->where('seller_id', $sellerId)->exists();
     }
 
     public function sendBack(User $direction, string $id, string $reason): void

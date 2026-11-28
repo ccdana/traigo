@@ -32,6 +32,7 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::get('me/attendance', [AttendanceController::class, 'index']);
+    Route::put('attendance/site', [AttendanceController::class, 'configure'])->middleware('role:control,management');
     Route::post('me/attendance', [AttendanceController::class, 'store'])->withoutMiddleware('idempotent');
 
     // Inicio, equipo y «Mi semana»: los integrantes, cada quien lo suyo.
@@ -153,9 +154,10 @@ Route::middleware(['auth:sanctum', 'staff', 'actor', 'throttle:api', 'idempotent
             Route::post('{type}/{id}/return', 'sendBack')->where($where);
         });
 
-    // Ventas: solo quienes venden, y cada quien las suyas.
-    Route::middleware('role:seller,wholesale')->controller(OrderController::class)->group(function () {
+    // Todas las cuentas del equipo venden y acceden a sus propios pedidos.
+    Route::controller(OrderController::class)->group(function () {
         Route::get('orders', 'index');
+        Route::get('me/commissions', 'commissions');
         Route::post('orders', 'store');
         Route::get('orders/{order}', 'show')->whereUuid('order');
         Route::post('orders/{order}/cancel', 'cancel')->whereUuid('order');

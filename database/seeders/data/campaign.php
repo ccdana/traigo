@@ -9,8 +9,8 @@ return ['members' => [
     ['member' => 'Isaí', 'bonus_share_pct' => 20, 'min_kpi_pct' => 90],
     ['member' => 'Kim', 'bonus_share_pct' => 20, 'min_kpi_pct' => 90],
     ['member' => 'Alison', 'bonus_share_pct' => 20, 'min_kpi_pct' => 80],
-    ['member' => 'Sistemas 1', 'bonus_share_pct' => 10, 'min_kpi_pct' => 90],
-    ['member' => 'Sistemas 2', 'bonus_share_pct' => 10, 'min_kpi_pct' => 90],
+    ['member' => 'Dana', 'bonus_share_pct' => 10, 'min_kpi_pct' => 90],
+    ['member' => 'Brandon', 'bonus_share_pct' => 10, 'min_kpi_pct' => 90],
 ], 'tiers' => [
     ['tier' => 'partial', 'threshold_pct' => 90, 'release_factor' => 0.5],
     ['tier' => 'complete', 'threshold_pct' => 100, 'release_factor' => 1],

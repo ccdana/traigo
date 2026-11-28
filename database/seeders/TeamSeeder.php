@@ -14,14 +14,14 @@ class TeamSeeder extends Seeder
      * @var list<array{code: string, name: string, role: string, title: string}>
      */
     public const MEMBERS = [
-        ['code' => 'JIM-01', 'name' => 'Jime', 'role' => 'control', 'title' => 'Control y validación'],
+        ['code' => 'JIM-01', 'name' => 'Jimena', 'role' => 'control', 'title' => 'Control y validación'],
         ['code' => 'AIL-02', 'name' => 'Ailén', 'role' => 'content', 'title' => 'Contenido y lives'],
         ['code' => 'ISA-03', 'name' => 'Isaí', 'role' => 'warehouse', 'title' => 'Almacén y caja'],
         ['code' => 'ALI-04', 'name' => 'Alison', 'role' => 'seller', 'title' => 'Ventas por comisión'],
         ['code' => 'KIM-05', 'name' => 'Kim', 'role' => 'wholesale', 'title' => 'Ventas mayoristas'],
-        ['code' => 'SIS-06', 'name' => 'Sistemas 1', 'role' => 'systems', 'title' => 'Sistemas'],
-        ['code' => 'SIS-07', 'name' => 'Sistemas 2', 'role' => 'systems', 'title' => 'Sistemas'],
-        ['code' => 'DIR-08', 'name' => 'Dirección', 'role' => 'management', 'title' => 'Dirección'],
+        ['code' => 'SIS-06', 'name' => 'Dana', 'role' => 'systems', 'title' => 'Sistemas'],
+        ['code' => 'SIS-07', 'name' => 'Brandon', 'role' => 'systems', 'title' => 'Sistemas'],
+        ['code' => 'DIR-08', 'name' => 'Miguel', 'role' => 'management', 'title' => 'Dirección'],
     ];
 
     public function run(): void

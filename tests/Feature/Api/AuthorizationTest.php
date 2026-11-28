@@ -21,7 +21,7 @@ class AuthorizationTest extends ControlTestCase
         return $this->api($code)->postJson("/api/v1/management/authorizations/{$path}", $data);
     }
 
-    /** La semana 1 enviada: Kim cerrada a mano y Sistemas 2 sin sus entregas. */
+    /** La semana 1 enviada: Kim cerrada a mano y Brandon sin sus entregas. */
     private function sentWeek(): void
     {
         $this->readyToClose(except: ['KIM-05'], deliverSystems: false);
@@ -42,7 +42,7 @@ class AuthorizationTest extends ControlTestCase
             ->assertJsonPath('data.0.title', 'Precio de Tomatodos de Messi')
             ->assertJsonPath('data.0.amount', null)
             ->assertJsonPath('data.1', [
-                'type' => 'weekly_bonus', 'id' => '1', 'title' => 'Bono semana 1–6 dic', 'requested_by' => 'Jime',
+                'type' => 'weekly_bonus', 'id' => '1', 'title' => 'Bono semana 1–6 dic', 'requested_by' => 'Jimena',
                 'requested_at' => '2026-12-07T10:00:00-04:00', 'amount' => '1050.00',
             ]);
 
@@ -66,7 +66,7 @@ class AuthorizationTest extends ControlTestCase
             ->assertJsonPath('data.unpaid', [
                 ['name' => 'Ailén', 'amount' => '300.00', 'reason' => 'KPI 50 % de 90 %'],
                 ['name' => 'Kim', 'amount' => '300.00', 'reason' => 'Cerrado por Jime: No envió sus cotizaciones'],
-                ['name' => 'Sistemas 2', 'amount' => '150.00', 'reason' => 'Cerrado por Jime: Sin entregas'],
+                ['name' => 'Brandon', 'amount' => '150.00', 'reason' => 'Cerrado por Jime: Sin entregas'],
             ])
             ->assertJsonPath('data.checks', [
                 'Cobros conciliados: 1 de 1 pagos confirmados',
@@ -148,7 +148,7 @@ class AuthorizationTest extends ControlTestCase
         $this->act('commissions/2026-12/send')->assertOk();
 
         $this->management()->assertJsonPath('data.0', [
-            'type' => 'commissions', 'id' => '2026-12', 'title' => 'Comisiones de diciembre', 'requested_by' => 'Jime',
+            'type' => 'commissions', 'id' => '2026-12', 'title' => 'Comisiones de diciembre', 'requested_by' => 'Jimena',
             'requested_at' => '2027-01-02T10:00:00-04:00', 'amount' => '8.70',
         ]);
         $this->management('commissions/2026-12')

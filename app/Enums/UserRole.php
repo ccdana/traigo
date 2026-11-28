@@ -63,6 +63,6 @@ enum UserRole: string
 
     public function canSell(): bool
     {
-        return $this === self::Seller || $this === self::Wholesale;
+        return $this->isStaff();
     }
 }

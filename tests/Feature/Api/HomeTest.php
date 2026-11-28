@@ -94,7 +94,7 @@ class HomeTest extends CampaignTestCase
 
         $this->api('ISA-03')->getJson('/api/v1/home')
             ->assertOk()
-            ->assertJsonPath('data.month_commission', null)
+            ->assertJsonPath('data.month_commission.amount', '0.00')
             ->assertJsonPath('data.today_sales', [])
             ->assertJsonPath('data.cash_today', [
                 'collected' => '174.00',

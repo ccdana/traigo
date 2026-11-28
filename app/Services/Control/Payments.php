@@ -112,6 +112,9 @@ class Payments
     {
         DB::transaction(function () use ($jime, $paymentId, $reason) {
             [$order, $payment] = $this->lockForReview($paymentId);
+            if ($payment->submitted_by === $jime->getKey()) {
+                throw ApiException::conflict('own_record', 'Otra cuenta de Control debe revisar el comprobante que subiste.');
+            }
 
             $payment->forceFill([
                 'status' => PaymentStatus::Rejected,

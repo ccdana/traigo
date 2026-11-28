@@ -48,7 +48,7 @@ class ControlReviewTest extends ControlTestCase
         );
         $response
             ->assertJsonPath('data.0.id', $deliverable)
-            ->assertJsonPath('data.0.title', 'Sistemas 1')
+            ->assertJsonPath('data.0.title', 'Dana')
             ->assertJsonPath('data.1', [
                 'type' => 'payment', 'id' => $proof['payment'], 'title' => 'Mariela Quispe · Alison',
                 'subtitle' => 'QR', 'created_at' => '2026-12-03T10:00:00-04:00', 'amount' => '174.00',
@@ -287,7 +287,7 @@ class ControlReviewTest extends ControlTestCase
         $this->act("deliverables/{$first}/validate", ['delivered_on' => '2026-11-30'])
             ->assertOk()
             ->assertJsonPath('data.status', 'on_time')
-            ->assertJsonPath('data.member_name', 'Sistemas 1');
+            ->assertJsonPath('data.member_name', 'Dana');
         $this->act("deliverables/{$first}/reject", ['note' => 'x'])
             ->assertConflict()->assertJsonPath('code', 'already_reviewed');
 
