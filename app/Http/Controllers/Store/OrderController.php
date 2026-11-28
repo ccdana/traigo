@@ -7,6 +7,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Sales\SubmitProof;
+use App\Services\Store\DeliveryLocations;
 use App\Services\Store\ExpireWebOrders;
 use App\Services\Store\StoreSettings;
 use Illuminate\Contracts\View\View;
@@ -49,6 +50,7 @@ class OrderController extends Controller
                 'qrUrl' => $settings->paymentQrUrl(),
                 'helpUrl' => $help,
                 'pickupAddress' => $settings->get('pickup_address'),
+                'deliveryLocation' => app(DeliveryLocations::class)->of($order->getKey()),
             ])
             // La dirección del pedido no se comparte con otros sitios.
             ->header('Referrer-Policy', 'no-referrer');

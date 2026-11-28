@@ -15,6 +15,22 @@ use Illuminate\Support\Facades\DB;
  */
 final class StorePricing
 {
+    /** Precio de una unidad para filtrar antes de paginar; misma fórmula que price(). */
+    public static function catalogOffers(): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('promotion_products as pp')
+            ->join('promotions as pr', 'pr.id_promotion', '=', 'pp.promotion_id')
+            ->whereColumn('pp.product_id', 'products.id_product')
+            ->where('pr.status', 'approved')->where('pr.is_active', true)
+            ->where('pr.starts_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('pr.ends_at')->orWhere('pr.ends_at', '>', now()))
+            ->selectRaw("min(greatest(case pr.discount_type
+                when 'percentage' then round(products.price_unit_bs * (100 - pr.discount_value) / 100, 2)
+                when 'fixed_amount' then products.price_unit_bs - pr.discount_value
+                when 'fixed_price' then pr.discount_value
+                end, coalesce(products.price_wholesale_bs, 0.01))) as price_bs");
+    }
+
     /** Lo que queda de un precio al aplicarle un descuento, en centavos. */
     public static function discounted(string $discountType, string|int|float $value, int $cents): int
     {

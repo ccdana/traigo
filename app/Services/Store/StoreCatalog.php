@@ -19,7 +19,7 @@ final class StoreCatalog
         'hasta-50' => ['Hasta Bs 50', null, 50],
         '50-150' => ['Bs 50 a 150', 50, 150],
         '150-250' => ['Bs 150 a 250', 150, 250],
-        'mas-250' => ['Más de 250', 250, null],
+        'mas-250' => ['Bs 250 en adelante', 250, null],
     ];
 
     public const SORTS = [
@@ -29,6 +29,8 @@ final class StoreCatalog
     ];
 
     public const GIFT_BUDGETS = [50, 150, 250];
+
+    private const PRICE = 'least(products.price_unit_bs, coalesce(store_offer.price_bs, products.price_unit_bs))';
 
     public const GIFT_AUDIENCES = [
         'kids' => 'Niños',
@@ -65,14 +67,14 @@ final class StoreCatalog
         if ($range !== null) {
             [, $from, $to] = self::PRICE_RANGES[$range];
             $query
-                ->when($from !== null, fn (Builder $q) => $q->where('products.price_unit_bs', '>', $from))
-                ->when($to !== null, fn (Builder $q) => $q->where('products.price_unit_bs', '<=', $to));
+                ->when($from !== null, fn (Builder $q) => $q->whereRaw(self::PRICE.($range === 'mas-250' ? ' >= ?' : ' > ?'), [$from]))
+                ->when($to !== null, fn (Builder $q) => $q->whereRaw(self::PRICE.' <= ?', [$to]));
         }
 
         match ($sort) {
-            'precio-desc' => $query->orderByDesc('products.price_unit_bs'),
+            'precio-desc' => $query->orderByRaw(self::PRICE.' desc'),
             'nombre' => $query->orderByRaw(Product::foldSql('products.name')),
-            default => $query->orderBy('products.price_unit_bs'),
+            default => $query->orderByRaw(self::PRICE),
         };
 
         $page = $query->orderBy('products.item_code')->paginate(self::PER_PAGE)->withQueryString();
@@ -88,10 +90,10 @@ final class StoreCatalog
     public function gifts(?int $budget, ?string $audience, int $limit = 12): Collection
     {
         $products = $this->query()
-            ->when($budget !== null, fn (Builder $q) => $q->where('products.price_unit_bs', '<=', $budget))
+            ->when($budget !== null, fn (Builder $q) => $q->whereRaw(self::PRICE.($budget === 250 ? ' >= ?' : ' <= ?'), [$budget]))
             ->when($audience !== null, fn (Builder $q) => $q->where('products.gift_audience', $audience))
             ->orderByRaw('(coalesce(inventory.stock, 0) - coalesce(inventory.reserved, 0) > 0) desc')
-            ->orderBy('products.price_unit_bs')
+            ->orderByRaw(self::PRICE)
             ->orderBy('products.item_code')
             ->limit($limit)
             ->get();
@@ -208,6 +210,7 @@ final class StoreCatalog
     {
         return Product::query()
             ->forCatalog()
+            ->leftJoinLateral(StorePricing::catalogOffers(), 'store_offer')
             ->addSelect('categories.slug as category_slug')
             ->where('products.is_active', true);
     }

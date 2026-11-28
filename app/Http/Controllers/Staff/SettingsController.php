@@ -42,8 +42,7 @@ class SettingsController extends Controller
     }
 
     /**
-     * Quien cambie el QR redirige el dinero: pide el rol de Dirección (con su
-     * segundo paso) y queda en el historial.
+     * Quien cambie el QR redirige el dinero: requiere el rol de Dirección y queda en el historial.
      */
     public function paymentQr(Request $request, ImageStorage $storage): RedirectResponse
     {

@@ -76,7 +76,7 @@
                         <button type="button" data-step="1" hidden class="btn-soft border-b-2 border-ink px-4 py-2.5" aria-label="Agregar una unidad">+</button>
                     </div>
                     <button type="submit" class="btn-primary" @disabled(! $product->isAvailable())>
-                        {{ $product->isAvailable() ? 'Agregar a la bolsa' : 'Agotado' }}
+                        {{ $product->isAvailable() ? 'Agregar al carrito' : 'Agotado' }}
                     </button>
                 </form>
 

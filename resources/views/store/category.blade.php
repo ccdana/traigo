@@ -23,10 +23,10 @@
         </div>
 
         @php($keep = $sort === 'precio' ? [] : ['orden' => $sort])
-        <ul class="mt-5 flex flex-wrap gap-2" aria-label="Filtrar por precio">
-            <li><a @class([$range === null ? 'chip-active' : 'chip']) href="{{ route('store.category', ['slug' => $category->slug, ...$keep]) }}">Todos</a></li>
+        <ul class="shop-filters mt-5 flex flex-wrap gap-2" aria-label="Filtrar por precio">
+            <li><a @class([$range === null ? 'chip-active' : 'chip']) @if ($range === null) aria-current="true" @endif href="{{ route('store.category', ['slug' => $category->slug, ...$keep]) }}">Todos</a></li>
             @foreach (StoreCatalog::PRICE_RANGES as $value => [$label])
-                <li><a @class([$range === $value ? 'chip-active' : 'chip']) href="{{ route('store.category', ['slug' => $category->slug, 'precio' => $value, ...$keep]) }}">{{ $label }}</a></li>
+                <li><a @class([$range === $value ? 'chip-active' : 'chip']) @if ($range === $value) aria-current="true" @endif href="{{ route('store.category', ['slug' => $category->slug, 'precio' => $value, ...$keep]) }}">{{ $label }}</a></li>
             @endforeach
         </ul>
 

@@ -50,14 +50,14 @@ class WholesaleTest extends WebTestCase
         $quote = DB::table('quote_requests')->first();
         $this->assertSame('new', $quote->status);
 
-        $this->actingAs($this->member('JIM-01'), 'web');
+        $this->actingAs($this->member('DIR-08'), 'web');
         $this->get('/equipo/cotizaciones')->assertOk()->assertSee('Comercial Andina');
         $this->patch("/equipo/cotizaciones/{$quote->id_quote_request}", ['status' => 'answered']);
 
         $this->assertDatabaseHas('quote_requests', [
             'id_quote_request' => $quote->id_quote_request,
             'status' => 'answered',
-            'assigned_to' => $this->member('JIM-01')->getKey(),
+            'assigned_to' => $this->member('DIR-08')->getKey(),
         ]);
     }
 

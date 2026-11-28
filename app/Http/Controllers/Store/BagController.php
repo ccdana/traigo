@@ -10,7 +10,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-/** La bolsa: agregar, cambiar cantidades y quitar. Todavía no aparta stock. */
+/** El carrito: agregar, cambiar cantidades y quitar. Todavía no aparta stock. */
 class BagController extends Controller
 {
     public function __construct(
@@ -44,10 +44,10 @@ class BagController extends Controller
         $productId = $data['product_id'];
 
         if ($this->bag->isFull($productId)) {
-            return back()->withErrors(['quantity' => 'Tu bolsa está llena. Quita un producto para agregar otro.']);
+            return back()->withErrors(['quantity' => 'Tu carrito está lleno. Quita un producto para agregar otro.']);
         }
 
-        return $this->save($productId, $this->bag->quantityOf($productId) + (int) $data['quantity'], 'Agregado a tu bolsa.');
+        return $this->save($productId, $this->bag->quantityOf($productId) + (int) $data['quantity'], 'Agregado a tu carrito.');
     }
 
     public function update(Request $request, string $product): RedirectResponse
@@ -58,7 +58,7 @@ class BagController extends Controller
             ['quantity' => 'la cantidad'],
         );
 
-        // Solo se cambia lo que ya está en la bolsa.
+        // Solo se cambia lo que ya está en el carrito.
         if ($this->bag->quantityOf($product) === 0) {
             return to_route('store.bag.show');
         }
@@ -101,7 +101,7 @@ class BagController extends Controller
         $this->bag->put($productId, min($quantity, $available));
 
         if ($quantity > $available) {
-            return back()->with('status', "Solo quedan {$available} de {$product->name}: dejamos esa cantidad en tu bolsa.");
+            return back()->with('status', "Solo quedan {$available} de {$product->name}: dejamos esa cantidad en tu carrito.");
         }
 
         return back()->with('status', $success);

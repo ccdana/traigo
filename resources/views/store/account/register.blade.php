@@ -12,12 +12,12 @@
                     <x-field name="lastname" label="Apellido" required maxlength="80" autocomplete="family-name" />
                 </div>
                 <x-field name="phone" label="WhatsApp" type="tel" required maxlength="20" autocomplete="tel" inputmode="tel" hint="Por aquí coordinamos tu entrega." />
-                <x-field name="email" label="Correo" type="email" required maxlength="150" autocomplete="email" hint="Con él ingresas y recuperas tu contraseña." />
+                <x-field name="email" label="Correo" type="email" required maxlength="150" autocomplete="email" hint="Te enviaremos un código para confirmar que es tuyo." />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-field name="password" label="Contraseña" type="password" required minlength="8" autocomplete="new-password" hint="Al menos 8 caracteres." />
                     <x-field name="password_confirmation" label="Repite la contraseña" type="password" required minlength="8" autocomplete="new-password" />
                 </div>
-                <button type="submit" class="btn-primary w-full">Crear cuenta</button>
+                <button type="submit" class="btn-primary w-full">Enviar código</button>
                 <p class="text-xs text-muted">Usamos tus datos solo para gestionar tus pedidos.</p>
             </form>
         </div>

@@ -2,7 +2,7 @@
 
 @use('App\Support\Money')
 
-<article {{ $attributes->merge(['class' => 'group relative flex min-w-0 flex-col gap-2']) }}>
+<article {{ $attributes->merge(['class' => 'product-card group relative flex min-w-0 flex-col gap-2']) }}>
     <x-store.product-art :category="$product->categorySlug" :name="$product->name" :image="$product->imageUrl" :alt="$product->name" />
     <p class="eyebrow">{{ $product->itemCode }}</p>
     <h3 class="font-sans text-sm font-medium">
@@ -20,4 +20,5 @@
         <p class="text-xs text-muted">Por mayor {{ Money::display($product->wholesaleCents) }} desde {{ $product->wholesaleMinQty }} u.</p>
     @endif
     <x-store.availability :available="$product->isAvailable()" />
+    <span class="product-discover" aria-hidden="true">Ver producto <span>↗</span></span>
 </article>

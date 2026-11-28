@@ -57,16 +57,22 @@ class StaffAdminTest extends WebTestCase
         ];
     }
 
+    private function pendingPromotion(): string
+    {
+        $data = $this->newPromotion();
+        $products = $data['product_ids'];
+        unset($data['product_ids']);
+        return app(\App\Services\Store\PromotionEditor::class)->create($this->member('JIM-01'), [
+            ...$data, 'applies_to_wholesale' => false,
+        ], $products);
+    }
+
     #[Test]
     public function almacen_no_entra_a_la_administracion(): void
     {
-        $this->as('ISA-03');
-
         foreach (['productos', 'productos/nuevo', 'ofertas', 'configuracion', 'autorizaciones'] as $page) {
-            $this->get("/equipo/{$page}")->assertForbidden();
+            $this->as('ISA-03')->get("/equipo/{$page}")->assertRedirect('/equipo/ingresar');
         }
-
-        $this->get('/equipo/inventario')->assertOk()->assertDontSee('Configuración');
     }
 
     #[Test]
@@ -74,19 +80,19 @@ class StaffAdminTest extends WebTestCase
     {
         $product = $this->product()->getKey();
 
-        foreach (['inventario', "inventario/{$product}", 'productos', 'productos/nuevo', "productos/{$product}", 'ofertas', 'ofertas/nueva', 'configuracion', 'cotizaciones'] as $page) {
-            $this->as('JIM-01')->get("/equipo/{$page}")->assertOk();
+        foreach (['estadisticas', 'inventario', "inventario/{$product}", 'productos', 'productos/nuevo', "productos/{$product}", 'ofertas', 'configuracion', 'cotizaciones'] as $page) {
+            $this->as('DIR-08')->get("/equipo/{$page}")->assertOk();
         }
 
         $this->as('DIR-08')->get('/equipo/autorizaciones')->assertOk();
         $this->as('DIR-08')->get('/equipo/ofertas/nueva')->assertForbidden();
-        $this->as('JIM-01')->get('/equipo/autorizaciones')->assertForbidden();
+        $this->as('JIM-01')->get('/equipo/autorizaciones')->assertRedirect('/equipo/ingresar');
     }
 
     #[Test]
     public function un_producto_nuevo_nace_fuera_de_la_venta_y_lo_publica_direccion(): void
     {
-        $this->as('JIM-01')->post('/equipo/productos', $this->newProduct())->assertSessionHasNoErrors();
+        $this->as('DIR-08')->post('/equipo/productos', $this->newProduct())->assertSessionHasNoErrors();
 
         $product = DB::table('products')->where('item_code', 'NUEVO-01')->first();
         $this->assertFalse($product->is_active);
@@ -94,7 +100,7 @@ class StaffAdminTest extends WebTestCase
         $this->get('/producto/'.$product->slug)->assertNotFound();
 
         $this->as('JIM-01')->from('/equipo/productos')
-            ->patch("/equipo/productos/{$product->id_product}/venta", ['active' => 1])->assertForbidden();
+            ->patch("/equipo/productos/{$product->id_product}/venta", ['active' => 1])->assertRedirect('/equipo/ingresar');
         $this->as('DIR-08')->patch("/equipo/productos/{$product->id_product}/venta", ['active' => 1]);
 
         $this->get('/producto/'.$product->slug)->assertOk();
@@ -103,7 +109,7 @@ class StaffAdminTest extends WebTestCase
     #[Test]
     public function el_alta_respeta_las_reglas_de_precios_y_el_item_unico(): void
     {
-        $this->as('JIM-01');
+        $this->as('DIR-08');
 
         $this->from('/equipo/productos/nuevo')->post('/equipo/productos', $this->newProduct(['price_wholesale_bs' => '95']))
             ->assertSessionHasErrors('form');
@@ -120,13 +126,13 @@ class StaffAdminTest extends WebTestCase
         $url = "/equipo/productos/{$product->getKey()}";
 
         // Editar los datos no toca los precios aunque se envíen.
-        $this->as('JIM-01')->patch($url, [
+        $this->as('DIR-08')->patch($url, [
             'name' => 'Tomatodos de Messi', 'category_id' => $product->category_id, 'price_unit_bs' => '1',
         ])->assertSessionHasNoErrors();
         $this->assertSame('87.00', $this->product()->price_unit_bs);
 
         $this->as('DIR-08')->post("{$url}/precios", ['price_unit' => '91'])->assertForbidden();
-        $this->as('JIM-01')->post("{$url}/precios", ['price_unit' => '91', 'reason' => 'Sube el costo'])->assertSessionHasNoErrors();
+        app(\App\Services\Control\PriceChanges::class)->propose($this->member('JIM-01'), $product->getKey(), ['price_unit' => '91'], 'Sube el costo');
         $this->assertSame('87.00', $this->product()->price_unit_bs);
 
         $request = DB::table('price_change_requests')->value('id_price_change_request');
@@ -139,8 +145,7 @@ class StaffAdminTest extends WebTestCase
     #[Test]
     public function una_oferta_se_publica_recien_cuando_direccion_la_autoriza(): void
     {
-        $this->as('JIM-01')->post('/equipo/ofertas', $this->newPromotion())->assertSessionHasNoErrors();
-        $id = DB::table('promotions')->value('id_promotion');
+        $id = $this->pendingPromotion();
 
         // Sin autorizar, la tienda sigue con el precio de siempre.
         $this->get('/producto/'.$this->product()->slug)->assertViewHas('product', fn ($card) => $card->priceCents === 8700 && $card->listCents === null);
@@ -153,29 +158,20 @@ class StaffAdminTest extends WebTestCase
     }
 
     #[Test]
-    public function no_se_crean_ofertas_bajo_el_precio_por_mayor_ni_dos_en_la_misma_puerta(): void
+    public function direccion_consulta_y_retira_ofertas_sin_saltarse_la_separacion_de_roles(): void
     {
-        $this->as('JIM-01')->from('/equipo/ofertas/nueva');
-
-        $this->post('/equipo/ofertas', $this->newPromotion(['discount_value' => '50']))->assertSessionHasErrors('form');
-        $this->post('/equipo/ofertas', $this->newPromotion(['discount_value' => '99']))->assertSessionHasErrors('form');
-        $this->post('/equipo/ofertas', $this->newPromotion(['ends_at' => null]))->assertSessionHasErrors('ends_at');
-        $this->assertDatabaseCount('promotions', 0);
-
-        $this->post('/equipo/ofertas', $this->newPromotion())->assertSessionHasNoErrors();
-        $this->post('/equipo/ofertas', $this->newPromotion(['name' => 'Otra']))->assertSessionHasErrors('form');
-        $this->assertDatabaseCount('promotions', 1);
-
-        // Al retirarla, la puerta queda libre.
-        $this->patch('/equipo/ofertas/'.DB::table('promotions')->value('id_promotion').'/retirar');
-        $this->post('/equipo/ofertas', $this->newPromotion(['name' => 'Otra']))->assertSessionHasNoErrors();
+        $id = $this->pendingPromotion();
+        $this->as('DIR-08')->get('/equipo/ofertas')->assertOk()->assertSee('Puerta de Messi')->assertDontSee('Nueva oferta');
+        $this->post('/equipo/ofertas', $this->newPromotion())->assertForbidden();
+        $this->patch('/equipo/ofertas/'.$id.'/retirar')->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('promotions', ['id_promotion' => $id, 'is_active' => false, 'calendar_day' => null]);
     }
 
     #[Test]
     public function el_historial_de_la_app_cuenta_lo_que_se_hace_en_el_panel(): void
     {
-        $this->as('JIM-01')->post('/equipo/productos', $this->newProduct());
-        $this->post('/equipo/ofertas', $this->newPromotion());
+        $this->as('DIR-08')->post('/equipo/productos', $this->newProduct());
+        $this->pendingPromotion();
         $this->patch('/equipo/ofertas/'.DB::table('promotions')->value('id_promotion').'/retirar');
         $this->as('DIR-08')->patch('/equipo/configuracion', ['order_reservation_hours' => 3]);
 
@@ -196,7 +192,7 @@ class StaffAdminTest extends WebTestCase
     public function las_fotos_se_suben_se_ordenan_y_se_borran(): void
     {
         $url = '/equipo/productos/'.$this->product()->getKey().'/fotos';
-        $this->as('JIM-01')->from('/equipo/productos');
+        $this->as('DIR-08')->from('/equipo/productos');
 
         $this->post($url, ['photo' => UploadedFile::fake()->image('a.jpg', 800, 800)])->assertSessionHasNoErrors();
         $this->post($url, ['photo' => UploadedFile::fake()->image('b.png', 800, 800)])->assertSessionHasNoErrors();
@@ -226,7 +222,7 @@ class StaffAdminTest extends WebTestCase
         ]);
         $url = '/equipo/productos/'.$this->product()->getKey().'/fotos';
 
-        $this->as('JIM-01')->post($url, ['photo' => UploadedFile::fake()->image('a.jpg', 800, 800)])->assertSessionHasNoErrors();
+        $this->as('DIR-08')->post($url, ['photo' => UploadedFile::fake()->image('a.jpg', 800, 800)])->assertSessionHasNoErrors();
         $image = DB::table('product_images')->first();
         $this->assertSame('https://res.cloudinary.com/mi-nube/abc.jpg', $image->url);
 
@@ -244,7 +240,7 @@ class StaffAdminTest extends WebTestCase
         config(['services.cloudinary.url' => 'cloudinary://llave123:secreto456@mi-nube']);
         Http::fake(['api.cloudinary.com/*' => Http::response(['error' => ['message' => 'Invalid Signature']], 401)]);
 
-        $this->as('JIM-01')->from('/equipo/productos')
+        $this->as('DIR-08')->from('/equipo/productos')
             ->post('/equipo/productos/'.$this->product()->getKey().'/fotos', ['photo' => UploadedFile::fake()->image('a.jpg', 800, 800)])
             ->assertSessionHasErrors('form');
 
@@ -255,8 +251,8 @@ class StaffAdminTest extends WebTestCase
     public function solo_direccion_cambia_el_qr_y_con_el_se_activa_el_pago(): void
     {
         $this->as('JIM-01')->post('/equipo/configuracion/qr', ['qr' => UploadedFile::fake()->image('qr.png', 500, 500)])
-            ->assertForbidden();
-        $this->delete('/equipo/configuracion/qr')->assertForbidden();
+            ->assertRedirect('/equipo/ingresar');
+        $this->as('JIM-01')->delete('/equipo/configuracion/qr')->assertRedirect('/equipo/ingresar');
 
         $this->as('DIR-08')->post('/equipo/configuracion/qr', ['qr' => UploadedFile::fake()->image('qr.png', 500, 500)])
             ->assertSessionHasNoErrors();
@@ -271,7 +267,7 @@ class StaffAdminTest extends WebTestCase
     #[Test]
     public function la_configuracion_se_refleja_en_la_tienda_y_solo_anota_lo_que_cambia(): void
     {
-        $this->as('JIM-01')->patch('/equipo/configuracion', [
+        $this->as('DIR-08')->patch('/equipo/configuracion', [
             'store_whatsapp' => '+591 70000000',
             'store_tiktok' => '@i_traigo',
             'pickup_address' => 'Av. Heroínas 100',

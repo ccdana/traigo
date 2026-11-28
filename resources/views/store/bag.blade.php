@@ -1,18 +1,18 @@
 @use('App\Support\Money')
 
-<x-layouts.store title="Tu bolsa">
+<x-layouts.store title="Tu carrito">
     <div class="wrap py-6">
-        <x-breadcrumb :trail="['Inicio' => route('store.home')]" current="Bolsa" />
-        <h1 class="mt-3 text-4xl">Tu bolsa</h1>
+        <x-breadcrumb :trail="['Inicio' => route('store.home')]" current="Carrito" />
+        <h1 class="mt-3 text-4xl">Tu carrito</h1>
 
         <x-flash class="mt-4" />
         @if ($removed)
-            <p role="status" class="mt-4 border-l-4 border-warn bg-warn-soft px-4 py-3 text-sm text-warn">Quitamos de tu bolsa lo que ya no está a la venta.</p>
+            <p role="status" class="mt-4 border-l-4 border-warn bg-warn-soft px-4 py-3 text-sm text-warn">Quitamos de tu carrito lo que ya no está a la venta.</p>
         @endif
 
         @if ($lines->isEmpty())
             <div class="mt-6 bg-soft p-8">
-                <p class="text-muted">Tu bolsa está vacía.</p>
+                <p class="text-muted">Tu carrito está vacío.</p>
                 <a href="{{ route('store.home') }}#regalos" class="btn-primary mt-4">Ver regalos</a>
             </div>
         @else
@@ -78,7 +78,7 @@
                     @if ($canCheckout && ! $has_shortage)
                         <a href="{{ route('store.checkout.create') }}" class="btn-primary mt-4 w-full">Continuar al pago</a>
                         @guest('customer')
-                            <p class="mt-3 text-xs font-medium">Para comprar te pediremos ingresar o crear tu cuenta. Tu bolsa se conserva.</p>
+                            <p class="mt-3 text-xs font-medium">Para comprar te pediremos ingresar o crear tu cuenta. Tu carrito se conserva.</p>
                         @endguest
                         <p class="mt-3 text-xs text-muted">Al confirmar, reservamos tu pedido por {{ $hours }} horas mientras pagas.</p>
                     @else

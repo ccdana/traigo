@@ -6,7 +6,7 @@ use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Collection;
 
 /**
- * La bolsa del cliente, en su sesión. Solo guarda producto y cantidad: los
+ * El carrito del cliente, en su sesión. Solo guarda producto y cantidad: los
  * precios y el stock se leen de la base cada vez. No aparta stock; eso pasa al
  * confirmar el pedido.
  */
@@ -70,7 +70,7 @@ final class Bag
     }
 
     /**
-     * Lo que hay en la bolsa con los precios de hoy. Lo que dejó de venderse
+     * Lo que hay en el carrito con los precios de hoy. Lo que dejó de venderse
      * se quita solo.
      *
      * @return array{lines: Collection<int, array<string, mixed>>, units: int, subtotal_cents: int, removed: int, has_shortage: bool}

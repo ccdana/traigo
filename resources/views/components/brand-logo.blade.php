@@ -1,10 +1,6 @@
 @props(['tone' => 'color'])
 
-{{-- Provisional: se reemplaza por el archivo oficial del logo cuando esté disponible. --}}
+{{-- Archivos oficiales exportados de la referencia de marca; alojados localmente. --}}
 <a href="{{ route('store.home') }}" {{ $attributes->merge(['class' => 'inline-block']) }} aria-label="Traigo, ir al inicio">
-    <span @class([
-        'font-display text-3xl leading-none font-bold tracking-wide',
-        'bg-linear-to-r from-brand to-cyan bg-clip-text text-transparent' => $tone === 'color',
-        'text-white' => $tone === 'light',
-    ])>TRAIGO</span>
+    <img src="{{ asset($tone === 'light' ? 'brand/traigo-white.png' : 'brand/traigo-logo.png') }}" alt="TRAIGO · Accesorios y Tecnología" width="683" height="186" class="brand-image" decoding="async">
 </a>

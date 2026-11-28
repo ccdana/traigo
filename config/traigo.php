@@ -37,8 +37,9 @@ return [
     // En el panel web, con estas unidades disponibles o menos el stock es «bajo».
     'low_stock_threshold' => 5,
 
-    // Pedidos de la tienda web.
+    // Accesos y pedidos de la tienda web.
     'web' => [
+        'admin_code' => env('TRAIGO_WEB_ADMIN_CODE', 'DIR-08'),
         // Pedidos sin confirmar que puede tener a la vez una cuenta o un WhatsApp.
         'max_open_orders' => 3,
         // Por si falta la configuración `order_reservation_hours`.

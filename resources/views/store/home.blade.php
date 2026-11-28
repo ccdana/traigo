@@ -1,89 +1,56 @@
 @use('App\Services\Store\StoreCatalog')
 @use('App\Support\Money')
-@use('App\Support\Dates')
 
 <x-layouts.store>
     {{-- Portada --}}
-    <section class="wrap grid items-center gap-8 py-10 md:grid-cols-2">
-        <div class="space-y-5">
-            <p class="eyebrow">Navidad {{ now()->year }} · Cochabamba</p>
-            <h1 class="text-4xl leading-tight sm:text-5xl">Regalos que llegan a tiempo</h1>
-            <p class="max-w-md text-muted">Tomatodos, macetas y juguetes importados, al detalle o por mayor.</p>
-
-            <div data-countdown="{{ $countdown['at']->toIso8601String() }}">
-                <p class="eyebrow mb-2">{{ $countdown['label'] }}</p>
-                <dl class="flex gap-4">
-                    @foreach (['days' => 'días', 'hours' => 'horas', 'minutes' => 'min', 'seconds' => 'seg'] as $unit => $label)
-                        <div class="flex flex-col-reverse">
-                            <dt class="eyebrow">{{ $label }}</dt>
-                            <dd class="font-display text-3xl font-bold tabular-nums" data-unit="{{ $unit }}">--</dd>
-                        </div>
-                    @endforeach
-                </dl>
+    <section class="import-hero" data-import-hero aria-labelledby="hero-title">
+        <div class="wrap import-hero-layout">
+            <div class="import-hero-copy">
+                <h1 id="hero-title">Del mundo a tus manos.</h1>
+                <p>Tomatodos, macetas y juguetes importados. Compra al detalle o por mayor en Cochabamba.</p>
+                <div class="import-hero-actions">
+                    <a href="#regalos" class="btn import-primary">Ver regalos</a>
+                    <a href="{{ $categories->isNotEmpty() ? '#catalogo' : '#por-mayor' }}" class="import-text-link">{{ $categories->isNotEmpty() ? 'Explorar categorías' : 'Compra por mayor' }} <span aria-hidden="true">↓</span></a>
+                </div>
             </div>
-
-            <div class="flex flex-wrap gap-3">
-                <a href="#regalos" class="btn-primary">Ver regalos</a>
-                <a href="#por-mayor" class="btn-soft">Compra por mayor →</a>
+            <div class="import-globe" aria-hidden="true">
+                <canvas width="720" height="600" data-import-globe></canvas>
+                <div class="import-location"><span></span>Cochabamba, Bolivia</div>
             </div>
-        </div>
-
-        <div class="cut flex aspect-4/3 items-center justify-center bg-cyan" aria-hidden="true">
-            <svg viewBox="0 0 240 200" class="h-5/6 w-5/6">
-                <path d="M120 24 78 84h24L62 134h28l-42 48h144l-42-48h28l-40-50h24z" fill="#5b12f5" stroke="#150b3d" stroke-width="3" stroke-linejoin="round"/>
-                <path d="m120 6 5 12 13 1-10 8 3 13-11-7-11 7 3-13-10-8 13-1z" fill="#fff" stroke="#150b3d" stroke-width="3" stroke-linejoin="round"/>
-                <g fill="#fff"><circle cx="112" cy="72" r="5"/><circle cx="134" cy="108" r="5"/><circle cx="100" cy="132" r="5"/><circle cx="148" cy="156" r="5"/><circle cx="92" cy="166" r="5"/></g>
-                <g stroke="#150b3d" stroke-width="3"><rect x="26" y="150" width="42" height="34" fill="#d9c8ff"/><path d="M47 150v34M26 162h42" fill="none"/><rect x="176" y="142" width="40" height="42" fill="#fff"/><path d="M196 142v42M176 158h40" fill="none"/></g>
-            </svg>
         </div>
     </section>
 
-    {{-- Calendario de ofertas --}}
-    <section class="wrap py-8" aria-labelledby="calendario">
-        <h2 id="calendario" class="text-2xl sm:text-3xl">Una oferta por día</h2>
-        <p class="eyebrow mt-1">Del 1 al 24 de diciembre se abre una puerta cada día</p>
+    <x-store.holiday-feature :offer="collect($doors)->first(fn ($door) => $door['card']?->isAvailable())" />
 
-        <ol class="mt-5 grid grid-cols-3 gap-px border-2 border-ink bg-ink sm:grid-cols-6 lg:grid-cols-8">
-            @foreach ($doors as $door)
-                <li @class(['relative flex min-h-24 flex-col justify-between gap-1 p-2', 'bg-brand text-white' => $door['state'] === 'open' && $door['card'], 'bg-white' => ! ($door['state'] === 'open' && $door['card'])])>
-                    <span class="font-display text-xl font-bold">{{ $door['day'] }}</span>
-                    @if ($door['state'] === 'open' && $door['card'])
-                        <a href="{{ route('store.product', $door['card']->slug) }}" class="text-xs leading-snug after:absolute after:inset-0">
-                            {{ $door['title'] }}
-                            <strong class="block">{{ Money::display($door['card']->priceCents) }}</strong>
-                        </a>
-                    @else
-                        <span class="eyebrow">
-                            {{ match ($door['state']) { 'ended' => 'Terminó', 'upcoming' => 'Se abre pronto', default => 'Pronto' } }}
-                        </span>
-                    @endif
-                </li>
-            @endforeach
-        </ol>
-    </section>
+    @if ($categories->isNotEmpty())
+        <x-store.catalog-tunnel :categories="$categories" />
+    @endif
 
     {{-- Guía de regalos --}}
     <section id="regalos" class="wrap scroll-mt-4 py-8" aria-labelledby="titulo-regalos">
-        <h2 id="titulo-regalos" class="text-2xl sm:text-3xl">¿Qué regalo?</h2>
+        <div class="flex flex-wrap items-start justify-between gap-x-5 gap-y-2">
+            <h2 id="titulo-regalos" class="section-arrival text-2xl sm:text-3xl" data-scroll-reveal>¿Qué regalo?</h2>
+            <a class="text-sm font-semibold text-brand underline underline-offset-4" href="#como-comprar">Cómo comprar</a>
+        </div>
 
         <div class="mt-5 grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)]">
             <div class="space-y-5">
                 <div>
-                    <p class="eyebrow mb-2">Presupuesto</p>
-                    <ul class="flex flex-wrap gap-2 lg:flex-col lg:items-start">
-                        <li><a @class([$budget === null ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['para' => $audience])) }}#regalos">Todos</a></li>
+                    <p class="mb-2 text-sm font-semibold" id="gift-budget">Presupuesto</p>
+                    <ul class="shop-filters flex flex-wrap gap-2 lg:flex-col lg:items-start" aria-labelledby="gift-budget">
+                        <li><a @class([$budget === null ? 'chip-active' : 'chip']) @if ($budget === null) aria-current="true" @endif href="{{ route('store.home', array_filter(['para' => $audience])) }}#regalos">Todos</a></li>
                         @foreach (StoreCatalog::GIFT_BUDGETS as $option)
-                            <li><a @class([$budget === $option ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['presupuesto' => $option, 'para' => $audience])) }}#regalos">Hasta Bs {{ $option }}</a></li>
+                            <li><a @class([$budget === $option ? 'chip-active' : 'chip']) @if ($budget === $option) aria-current="true" @endif href="{{ route('store.home', array_filter(['presupuesto' => $option, 'para' => $audience])) }}#regalos">{{ $option === 250 ? 'Bs 250 en adelante' : 'Hasta Bs '.$option }}</a></li>
                         @endforeach
                     </ul>
                 </div>
                 @if ($audiences)
                     <div>
-                        <p class="eyebrow mb-2">Para quién</p>
-                        <ul class="flex flex-wrap gap-2">
-                            <li><a @class([$audience === null ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['presupuesto' => $budget])) }}#regalos">Todos</a></li>
+                        <p class="mb-2 text-sm font-semibold" id="gift-for">Para quién</p>
+                        <ul class="shop-filters flex flex-wrap gap-2" aria-labelledby="gift-for">
+                            <li><a @class([$audience === null ? 'chip-active' : 'chip']) @if ($audience === null) aria-current="true" @endif href="{{ route('store.home', array_filter(['presupuesto' => $budget])) }}#regalos">Todos</a></li>
                             @foreach ($audiences as $value => $label)
-                                <li><a @class([$audience === $value ? 'chip-active' : 'chip']) href="{{ route('store.home', array_filter(['presupuesto' => $budget, 'para' => $value])) }}#regalos">{{ $label }}</a></li>
+                                <li><a @class([$audience === $value ? 'chip-active' : 'chip']) @if ($audience === $value) aria-current="true" @endif href="{{ route('store.home', array_filter(['presupuesto' => $budget, 'para' => $value])) }}#regalos">{{ $label }}</a></li>
                             @endforeach
                         </ul>
                     </div>
@@ -102,29 +69,45 @@
         </div>
     </section>
 
-    {{-- Categorías --}}
-    <section class="wrap py-8" aria-labelledby="catalogo">
-        <h2 id="catalogo" class="text-2xl sm:text-3xl">Todo el catálogo</h2>
-        <ul class="mt-5 grid gap-4 sm:grid-cols-3">
-            @foreach ($categories as $category)
-                <li>
-                    <a href="{{ route('store.category', $category->slug) }}" class="group block">
-                        <x-store.product-art :category="$category->slug" />
-                        <span class="mt-2 flex items-baseline justify-between gap-2 border-b-2 border-ink pb-2">
-                            <span class="font-display text-lg font-bold group-hover:text-brand">{{ $category->name }}</span>
-                            <span class="eyebrow">{{ $category->products_count }} productos</span>
+    <x-store.shopping-journey />
+
+    {{-- Calendario de ofertas --}}
+    <section id="calendario" class="wrap py-8" aria-labelledby="calendar-title">
+        <h2 id="calendar-title" class="section-arrival text-2xl sm:text-3xl" data-scroll-reveal>Una oferta por día</h2>
+        <p class="mt-2 text-sm text-muted">Del 1 al 24 de diciembre. Las ofertas disponibles se pueden abrir desde el calendario.</p>
+        <div class="calendar-countdown" data-countdown="{{ $countdown['at']->toIso8601String() }}">
+            <p>{{ $countdown['label'] }}</p>
+            <dl>
+                @foreach (['days' => 'días', 'hours' => 'horas', 'minutes' => 'min', 'seconds' => 'seg'] as $unit => $label)
+                    <div><dt>{{ $label }}</dt><dd data-unit="{{ $unit }}">--</dd></div>
+                @endforeach
+            </dl>
+        </div>
+
+        <ol class="offer-calendar mt-5 grid grid-cols-3 gap-px border-2 border-ink bg-ink sm:grid-cols-6 lg:grid-cols-8">
+            @foreach ($doors as $door)
+                <li class="relative flex min-h-24 flex-col justify-between gap-1" @if ($door['state'] === 'open' && $door['card']) data-open-door @endif>
+                    <span class="font-display text-xl font-bold">{{ $door['day'] }}</span>
+                    @if ($door['state'] === 'open' && $door['card'])
+                        <a href="{{ route('store.product', $door['card']->slug) }}" class="text-sm leading-snug after:absolute after:inset-0">
+                            {{ $door['title'] }}
+                            <strong class="block">{{ Money::display($door['card']->priceCents) }}</strong>
+                        </a>
+                    @else
+                        <span class="text-xs text-muted">
+                            {{ match ($door['state']) { 'ended' => 'Terminó', 'upcoming' => 'Se abre pronto', default => 'Por anunciar' } }}
                         </span>
-                    </a>
+                    @endif
                 </li>
             @endforeach
-        </ul>
+        </ol>
     </section>
 
     {{-- Por mayor --}}
     <section id="por-mayor" class="mt-8 scroll-mt-4 bg-brand text-white">
         <div class="wrap grid gap-8 py-10 md:grid-cols-2">
             <div class="space-y-3">
-                <h2 class="text-2xl sm:text-3xl">¿Regalos de empresa o para revender?</h2>
+                <h2 class="section-arrival text-2xl sm:text-3xl" data-scroll-reveal>¿Regalos de empresa o para revender?</h2>
                 <p class="max-w-md text-sm text-white/85">El precio por mayor se aplica solo al llevar el mínimo de un mismo código. No hay un monto mínimo de pedido.</p>
                 <a href="{{ route('store.wholesale.show') }}" class="btn cut bg-cyan text-ink hover:bg-white">Ver precios por mayor</a>
             </div>
@@ -143,24 +126,5 @@
                 @endforeach
             </dl>
         </div>
-    </section>
-
-    {{-- Entrega y pago --}}
-    <section class="wrap py-10" aria-labelledby="a-tiempo">
-        <h2 id="a-tiempo" class="text-2xl">Pide a tiempo</h2>
-        <ul class="mt-5 grid gap-6 sm:grid-cols-3">
-            <li class="border-t-2 border-ink pt-3">
-                <h3 class="text-base">Delivery en Cochabamba</h3>
-                <p class="mt-1 text-sm text-muted">Coordinamos la entrega por WhatsApp.</p>
-            </li>
-            <li class="border-t-2 border-ink pt-3">
-                <h3 class="text-base">Recojo en el punto</h3>
-                <p class="mt-1 text-sm text-muted">Recoge tu pedido cuando esté listo.</p>
-            </li>
-            <li class="border-t-2 border-ink pt-3">
-                <h3 class="text-base">Pago con QR</h3>
-                <p class="mt-1 text-sm text-muted">Pagas desde la app de tu banco y subes el comprobante.</p>
-            </li>
-        </ul>
     </section>
 </x-layouts.store>

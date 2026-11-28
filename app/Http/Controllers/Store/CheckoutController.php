@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CheckoutRequest;
 use App\Models\Order;
 use App\Services\Store\Bag;
+use App\Services\Store\DeliveryLocations;
 use App\Services\Store\ExpireWebOrders;
 use App\Services\Store\PlaceWebOrder;
 use App\Services\Store\StoreSettings;
@@ -33,16 +34,16 @@ class CheckoutController extends Controller
         }
 
         $customer = $request->user();
+        $lastOrder = Order::query()->where('customer_id', $customer->getKey())
+            ->where('delivery_type', 'delivery')->orderByDesc('created_at')->orderByDesc('id_order')->first();
+        $lastLocation = $lastOrder ? app(DeliveryLocations::class)->of($lastOrder->getKey()) : null;
 
         return view('store.checkout', [
             ...$contents,
             'account' => $customer,
             // La dirección de su último delivery, para no escribirla otra vez.
-            'lastAddress' => Order::query()
-                ->where('customer_id', $customer->getKey())
-                ->whereNotNull('shipping_address')
-                ->orderByDesc('created_at')
-                ->value('shipping_address'),
+            'lastAddress' => $lastLocation?->address ?? $lastOrder?->shipping_address,
+            'lastLocation' => $lastLocation,
             'expectedTotal' => Money::format($contents['subtotal_cents']),
             'hours' => $this->settings->reservationHours(),
             'deliveryNote' => $this->settings->get('delivery_fee_note'),
@@ -69,7 +70,7 @@ class CheckoutController extends Controller
             );
         } catch (ApiException $e) {
             // Si cambió el precio basta con revisar el total; lo demás se
-            // corrige en la bolsa.
+            // corrige en el carrito.
             $target = in_array($e->errorCode, ['price_changed', 'too_many_open_orders'], true)
                 ? to_route('store.checkout.create')->withInput()
                 : to_route('store.bag.show');

@@ -1,7 +1,17 @@
 @import 'tailwindcss';
+@import './interface.css';
+@import './shopping-journey.css';
+@import './holiday.css';
+@import './store-scenes.css';
+@import './admin.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+
+.delivery-map { height: 340px; width: 100%; position: relative; z-index: 0; background: #dcdaea; }
+.delivery-marker svg { width: 32px; height: 42px; }
+.delivery-map .leaflet-control-attribution { font-size: 10px; }
+[data-map-search]:disabled, [data-map-locate]:disabled { opacity: .6; cursor: wait; }
 
 /* Identidad de Traigo, tomada de los mockups. Cambiar un color aquí lo cambia en toda la web. */
 @theme {
@@ -9,13 +19,13 @@
     --font-display: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-    --color-brand: #5b12f5;
-    --color-brand-dark: #4409c4;
-    --color-ink: #150b3d;
+    --color-brand: #5f11fa;
+    --color-brand-dark: #4e0acf;
+    --color-ink: #150a3b;
     --color-muted: #6b6785;
     --color-line: #dcdaea;
     --color-soft: #f2f1f8;
-    --color-cyan: #12c4e6;
+    --color-cyan: #0ce8dc;
 
     --color-art-lilac: #e4dcff;
     --color-art-sky: #cdeffc;

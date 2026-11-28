@@ -64,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
         });
         RateLimiter::for('customer-register', fn (Request $request) => Limit::perHour(config('traigo.web.registrations_per_hour'))
             ->by("register:{$request->ip()}"));
+        RateLimiter::for('customer-registration-verify', fn (Request $request) => Limit::perMinute(10)
+            ->by($request->ip()));
+        RateLimiter::for('staff-web-login', fn (Request $request) => Limit::perMinute(config('traigo.login.attempts_per_minute'))
+            ->by($request->ip()));
         RateLimiter::for('password-link', fn (Request $request) => Limit::perMinute(config('traigo.web.password_links_per_minute'))
             ->by("password-link:{$request->ip()}"));
         RateLimiter::for('password-change', fn (Request $request) => Limit::perMinute(config('traigo.web.password_changes_per_minute'))

@@ -15,7 +15,7 @@
     };
 @endphp
 
-<div {{ $attributes->merge(['class' => "flex aspect-4/3 items-center justify-center overflow-hidden {$background}"]) }}>
+<div {{ $attributes->merge(['class' => "product-art flex aspect-4/3 items-center justify-center overflow-hidden {$background}"]) }}>
     @if ($image)
         <img src="{{ $image }}" alt="{{ $alt }}" loading="lazy" class="size-full object-cover">
     @else
